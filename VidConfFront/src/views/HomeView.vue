@@ -5,9 +5,5 @@ import DarkMode from "@/components/DarkMode.vue";
 </script>
 
 <template>
-  <main>
-    <TheWelcome />
-    <DarkMode />
-    <Button>click me</Button>
-  </main>
+  <main></main>
 </template>
