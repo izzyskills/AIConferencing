@@ -9,7 +9,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-// Pass { disableTransition: false } to enable transitions
 const mode = useColorMode({ disableTransition: false });
 </script>
 
