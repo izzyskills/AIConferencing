@@ -50,9 +50,9 @@ import MountainIcon from "@/components/icons/MountainIcon.vue";
         <DarkMode />
       </SheetContent>
     </Sheet>
-    <RouterLink to="#" class="mr-6 hidden lg:flex" prefetch="{false}">
+    <RouterLink to="#" class="mr-6 hidden lg:flex gap-2">
       <MountainIcon class="h-6 w-6" />
-      <span class="sr-only">Acme Inc</span>
+      <span class="">Acme Inc</span>
     </RouterLink>
     <nav class="ml-auto hidden lg:flex gap-6">
       <RouterLink

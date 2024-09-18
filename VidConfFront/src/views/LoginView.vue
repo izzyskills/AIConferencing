@@ -14,8 +14,8 @@ import { GithubIcon } from "lucide-vue-next";
 </script>
 
 <template>
-  <div class="flex w-full self-center items-center content-center">
-    <Card class="self-center max-w-[40rem]">
+  <div class="flex w-full justify-center">
+    <Card class="md:min-w-[30rem]">
       <CardHeader class="space-y-1">
         <CardTitle class="text-2xl"> Login to Your account </CardTitle>
         <CardDescription> enter your email and password </CardDescription>

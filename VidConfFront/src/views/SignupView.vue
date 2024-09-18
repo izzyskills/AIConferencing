@@ -2,7 +2,7 @@
 import UserAuthForm from "@/components/UserAuthForm.vue";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
-import Login from "./Login.vue";
+import Login from "./LoginView.vue";
 </script>
 
 <template>
