@@ -1,77 +1,60 @@
 from typing import Any, Callable
+
+from fastapi import FastAPI, status
 from fastapi.requests import Request
 from fastapi.responses import JSONResponse
-from fastapi import FastAPI, status
 from sqlalchemy.exc import SQLAlchemyError
 
 
-class BooklyException(Exception):
+class VidconfException(Exception):
     """This is the base class for all bookly errors"""
 
     pass
 
 
-class InvalidToken(BooklyException):
+class InvalidToken(VidconfException):
     """User has provided an invalid or expired token"""
 
     pass
 
 
-class RevokedToken(BooklyException):
+class RevokedToken(VidconfException):
     """User has provided a token that has been revoked"""
 
     pass
 
 
-class AccessTokenRequired(BooklyException):
+class AccessTokenRequired(VidconfException):
     """User has provided a refresh token when an access token is needed"""
 
     pass
 
 
-class RefreshTokenRequired(BooklyException):
+class RefreshTokenRequired(VidconfException):
     """User has provided an access token when a refresh token is needed"""
 
     pass
 
 
-class UserAlreadyExists(BooklyException):
+class UserAlreadyExists(VidconfException):
     """User has provided an email for a user who exists during sign up."""
 
     pass
 
 
-class InvalidCredentials(BooklyException):
+class InvalidCredentials(VidconfException):
     """User has provided wrong email or password during log in."""
 
     pass
 
 
-class InsufficientPermission(BooklyException):
+class InsufficientPermission(VidconfException):
     """User does not have the neccessary permissions to perform an action."""
 
     pass
 
 
-class BookNotFound(BooklyException):
-    """Book Not found"""
-
-    pass
-
-
-class TagNotFound(BooklyException):
-    """Tag Not found"""
-
-    pass
-
-
-class TagAlreadyExists(BooklyException):
-    """Tag already exists"""
-
-    pass
-
-
-class UserNotFound(BooklyException):
+class UserNotFound(VidconfException):
     """User Not found"""
 
     pass
@@ -87,7 +70,7 @@ def create_exception_handler(
     status_code: int, initial_detail: Any
 ) -> Callable[[Request, Exception], JSONResponse]:
 
-    async def exception_handler(request: Request, exc: BooklyException):
+    async def exception_handler(request: Request, exc: VidconfException):
 
         return JSONResponse(content=initial_detail, status_code=status_code)
 
@@ -113,16 +96,6 @@ def register_all_errors(app: FastAPI):
             initial_detail={
                 "message": "User not found",
                 "error_code": "user_not_found",
-            },
-        ),
-    )
-    app.add_exception_handler(
-        BookNotFound,
-        create_exception_handler(
-            status_code=status.HTTP_404_NOT_FOUND,
-            initial_detail={
-                "message": "Book not found",
-                "error_code": "book_not_found",
             },
         ),
     )
@@ -190,36 +163,6 @@ def register_all_errors(app: FastAPI):
             },
         ),
     )
-    app.add_exception_handler(
-        TagNotFound,
-        create_exception_handler(
-            status_code=status.HTTP_404_NOT_FOUND,
-            initial_detail={"message": "Tag Not Found", "error_code": "tag_not_found"},
-        ),
-    )
-
-    app.add_exception_handler(
-        TagAlreadyExists,
-        create_exception_handler(
-            status_code=status.HTTP_403_FORBIDDEN,
-            initial_detail={
-                "message": "Tag Already exists",
-                "error_code": "tag_exists",
-            },
-        ),
-    )
-
-    app.add_exception_handler(
-        BookNotFound,
-        create_exception_handler(
-            status_code=status.HTTP_404_NOT_FOUND,
-            initial_detail={
-                "message": "Book Not Found",
-                "error_code": "book_not_found",
-            },
-        ),
-    )
-
     app.add_exception_handler(
         AccountNotVerified,
         create_exception_handler(
