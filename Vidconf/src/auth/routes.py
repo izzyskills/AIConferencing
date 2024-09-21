@@ -12,12 +12,12 @@ from .dependencies import (
     AccessTokenBearer,
     RefreshTokenBearer,
     RoleChecker,
-    # get_current_user,
+    get_current_user,
 )
 from .schemas import (
     UserCreateModel,
     UserLoginModel,
-    # EmailModel,
+    EmailModel,
     PasswordResetRequestModel,
     PasswordResetConfirmModel,
 )
@@ -31,9 +31,8 @@ from .utils import (
 )
 from src.errors import UserAlreadyExists, UserNotFound, InvalidCredentials, InvalidToken
 from src.config import Config
-from src.db.main import get_session
 
-# from src.celery_tasks import send_email
+from src.celery_tasks import send_email
 
 auth_router = APIRouter()
 user_service = UserService()
@@ -46,16 +45,21 @@ REFRESH_TOKEN_EXPIRY = 2
 # Bearer Token
 
 
-# @auth_router.post("/send_mail")
-# async def send_mail(emails: EmailModel):
-#     emails = emails.addresses
-#
-#     html = "<h1>Welcome to the app</h1>"
-#     subject = "Welcome to our app"
-#
-#     send_email.delay(emails, subject, html)
-#
-#     return {"message": "Email sent successfully"}
+@auth_router.get("/users/me")
+async def get_current_user_data(user: dict = Depends(get_current_user)):
+    return user
+
+
+@auth_router.post("/send_mail")
+async def send_mail(emails: EmailModel):
+    emails = emails.addresses
+
+    html = "<h1>Welcome to the app</h1>"
+    subject = "Welcome to our app"
+
+    send_email.delay(emails, subject, html)
+
+    return {"message": "Email sent successfully"}
 
 
 @auth_router.post("/signup", status_code=status.HTTP_201_CREATED)
