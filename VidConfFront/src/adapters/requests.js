@@ -2,7 +2,7 @@ import { useAuth } from "@/composables/useauth";
 import { apiClient, queryClient } from "./api";
 import { useMutation } from "@tanstack/vue-query";
 import { useRouter, useRoute } from "vue-router";
-import jwtDecode from "jwt-decode";
+import { jwtDecode } from "jwt-decode";
 import axios from "axios";
 import { ref } from "vue";
 
@@ -86,3 +86,5 @@ function useSignup() {
     error,
   };
 }
+
+export { useSignup, useLogin };

@@ -6,7 +6,6 @@ import { Loader2, GithubIcon } from "lucide-vue-next";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useForm } from "vee-validate";
 import { toTypedSchema } from "@vee-validate/zod";
 import { signup_schema } from "./schemas";
@@ -15,14 +14,28 @@ import {
   FormLabel,
   FormItem,
   FormControl,
-  FormDescription,
+  FormMessage,
 } from "../ui/form";
-import FormLabel from "../ui/form/FormLabel.vue";
+import { useSignup } from "@/adapters/requests";
 
 const isLoading = ref(false);
 const formSchema = toTypedSchema(signup_schema);
-const form = useForm({
+const { handleSubmit } = useForm({
   validationSchema: formSchema,
+});
+
+const { signup } = useSignup();
+
+const onSubmit = handleSubmit(async (values) => {
+  console.log("Form submitted!", values);
+  try {
+    isLoading.value = true;
+    await signup.mutateAsync(values);
+  } catch (error) {
+    console.error(error);
+  } finally {
+    isLoading.value = false;
+  }
 });
 </script>
 
@@ -35,76 +48,81 @@ const form = useForm({
     <div :class="cn('grid gap-6 text-left', $attrs.class ?? '')">
       <form @submit="onSubmit">
         <div class="grid gap-2">
-          <FormField
-            v-slot="{ componentField }"
-            name="username"
-            :validate-on-blur="!isFieldDirty"
-          >
+          <FormField v-slot="{ componentField }" name="first_name">
             <FormItem>
-              <FormLabel>Username</FormLabel>
+              <FormLabel>First Name</FormLabel>
               <FormControl>
                 <Input
-                  type="text"
-                  placeholder="shadcn"
+                  placeholder="James"
+                  autocomplete="cc-given-name"
                   v-bind="componentField"
+                  :disabled="isLoading"
                 />
               </FormControl>
-              <FormDescription>
-                This is your public display name.
-              </FormDescription>
               <FormMessage />
             </FormItem>
           </FormField>
-          <div class="grid gap-1">
-            <Label for="firstname"> First Name</Label>
-            <Input
-              id="firstname"
-              placeholder="James"
-              autocomplete="cc-given-name"
-              :disabled="isLoading"
-            />
-          </div>
-          <div class="grid gap-1">
-            <Label for="lastname"> Last Name</Label>
-            <Input
-              id="lastname"
-              placeholder="doe"
-              autocomplete="cc-family-name"
-              :disabled="isLoading"
-            />
-          </div>
-          <div class="grid gap-2">
-            <Label for="email"> Email </Label>
-            <Input
-              id="email"
-              placeholder="name@example.com"
-              type="email"
-              auto-capitalize="none"
-              auto-complete="email"
-              auto-correct="off"
-              :disabled="isLoading"
-            />
-          </div>
-          <div class="grid gap-1">
-            <Label for="password"> Password </Label>
-            <Input
-              id="password"
-              placeholder="Password"
-              type="password"
-              auto-complete="new-password"
-              :disabled="isLoading"
-            />
-          </div>
-          <div>
-            <Label for="password2"> Confirm Password</Label>
-            <Input
-              id="password2"
-              placeholder="Password"
-              type="password"
-              autocomplete="new-password"
-              :disabled="isLoading"
-            />
-          </div>
+          <FormField v-slot="{ componentField }" name="last_name">
+            <FormItem>
+              <FormLabel>Last Name</FormLabel>
+              <FormControl>
+                <Input
+                  placeholder="doe"
+                  autocomplete="cc-family-name"
+                  v-bind="componentField"
+                  :disabled="isLoading"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          </FormField>
+          <FormField v-slot="{ componentField }" name="email">
+            <FormItem>
+              <FormLabel> Email </FormLabel>
+              <FormControl>
+                <Input
+                  placeholder="name@example.com"
+                  auto-capitalize="none"
+                  auto-complete="email"
+                  auto-correct="off"
+                  v-bind="componentField"
+                  :disabled="isLoading"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          </FormField>
+          <FormField v-slot="{ componentField }" name="password">
+            <FormItem>
+              <FormLabel> Password </FormLabel>
+              <FormControl>
+                <Input
+                  placeholder="Password"
+                  type="password"
+                  auto-complete="new-password"
+                  v-bind="componentField"
+                  :disabled="isLoading"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          </FormField>
+          <FormField v-slot="{ componentField }" name="password_confirmation">
+            <FormItem>
+              <FormLabel> Confirm Password </FormLabel>
+              <FormControl>
+                <Input
+                  placeholder="Password"
+                  type="password"
+                  autocomplete="new-password"
+                  v-bind="componentField"
+                  :disabled="isLoading"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          </FormField>
+
           <Button class="mt-4" type="submit" :disabled="isLoading">
             <Loader2 v-if="isLoading" class="mr-2 h-4 w-4 animate-spin" />
             Create Account

@@ -7,16 +7,16 @@ import { RouterLink } from "vue-router";
 
 <template>
   <div class="md:hidden">
-    <VPImage
-      alt="Authentication"
-      width="1280"
-      height="1214"
-      class="block"
-      :image="{
-        dark: '/examples/authentication-dark.png',
-        light: '/examples/authentication-light.png',
-      }"
-    />
+    <!--   <VPImage -->
+    <!--     alt="Authentication" -->
+    <!--     width="1280" -->
+    <!--     height="1214" -->
+    <!--     class="block" -->
+    <!--     :image="{ -->
+    <!--       dark: '/examples/authentication-dark.png', -->
+    <!--       light: '/examples/authentication-light.png', -->
+    <!--     }" -->
+    <!--   /> -->
   </div>
 
   <div

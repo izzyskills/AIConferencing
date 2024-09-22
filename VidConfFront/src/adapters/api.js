@@ -1,6 +1,6 @@
 import axios from "axios";
 import { QueryClient } from "@tanstack/vue-query";
-import config from "../config";
+import { config } from "../config";
 const baseURL = config.API_URL;
 const apiClient = axios.create({
   baseURL: `${baseURL}`,
