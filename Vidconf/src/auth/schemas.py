@@ -16,7 +16,6 @@ class UserCreateModel(BaseModel):
             "example": {
                 "first_name": "John",
                 "last_name": "Doe",
-                "username": "johndoe",
                 "email": "johndoe123@co.com",
                 "password": "testpass123",
             }

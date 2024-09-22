@@ -10,7 +10,6 @@ class User(SQLModel, table=True):
     uid: uuid.UUID = Field(
         sa_column=Column(pg.UUID, nullable=False, primary_key=True, default=uuid.uuid4)
     )
-    username: str
     email: str
     first_name: str
     last_name: str
