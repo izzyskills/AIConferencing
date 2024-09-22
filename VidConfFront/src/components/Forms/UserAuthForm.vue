@@ -7,16 +7,23 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useForm } from "vee-validate";
+import { toTypedSchema } from "@vee-validate/zod";
+import { signup_schema } from "./schemas";
+import {
+  FormField,
+  FormLabel,
+  FormItem,
+  FormControl,
+  FormDescription,
+} from "../ui/form";
+import FormLabel from "../ui/form/FormLabel.vue";
 
 const isLoading = ref(false);
-async function onSubmit() {
-  e.preventDefault();
-  isLoading.value = true;
-
-  setTimeout(() => {
-    isLoading.value = false;
-  }, 3000);
-}
+const formSchema = toTypedSchema(signup_schema);
+const form = useForm({
+  validationSchema: formSchema,
+});
 </script>
 
 <template>
@@ -28,6 +35,26 @@ async function onSubmit() {
     <div :class="cn('grid gap-6 text-left', $attrs.class ?? '')">
       <form @submit="onSubmit">
         <div class="grid gap-2">
+          <FormField
+            v-slot="{ componentField }"
+            name="username"
+            :validate-on-blur="!isFieldDirty"
+          >
+            <FormItem>
+              <FormLabel>Username</FormLabel>
+              <FormControl>
+                <Input
+                  type="text"
+                  placeholder="shadcn"
+                  v-bind="componentField"
+                />
+              </FormControl>
+              <FormDescription>
+                This is your public display name.
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          </FormField>
           <div class="grid gap-1">
             <Label for="firstname"> First Name</Label>
             <Input
@@ -78,7 +105,7 @@ async function onSubmit() {
               :disabled="isLoading"
             />
           </div>
-          <Button class="mt-4" :disabled="isLoading">
+          <Button class="mt-4" type="submit" :disabled="isLoading">
             <Loader2 v-if="isLoading" class="mr-2 h-4 w-4 animate-spin" />
             Create Account
           </Button>
