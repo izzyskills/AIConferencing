@@ -22,11 +22,11 @@ function useLogin() {
       });
     },
     onSuccess: (res) => {
-      const token = res.data.token;
+      const token = res.data.access_token;
       const decodedToken = jwtDecode(token);
-      const userId = decodedToken.userId;
-      setAuth({ userId, token });
-      queryClient.invalidateQueries(["userdata", userId]);
+      const uid = decodedToken.user.uid;
+      setAuth({ uid, token });
+      queryClient.invalidateQueries(["userdata", uid]);
       router.push(from, { replace: true });
     },
     onError: (err) => {
@@ -64,7 +64,7 @@ function useSignup() {
       return response.data;
     },
     onSuccess: (data) => {
-      if (!data || !data.email) {
+      if (!data || !data.user.email) {
         console.error("Invalid data received:", data);
         error.value = "Invalid response from server";
         return;
