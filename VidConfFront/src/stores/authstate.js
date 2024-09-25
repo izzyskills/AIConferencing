@@ -8,7 +8,7 @@ export const useAuthStateStore = defineStore("authstate", () => {
     localStorage.setItem("authState", JSON.stringify(auth));
   };
   const isLoggedIn = computed(() =>
-    !!authstate.value.user?.uid ? true : false,
+    !!authstate.value.user?.user_uid ? true : false,
   );
   const logout = () => setAuth({});
   const getUser = computed(() => authstate.value?.user);

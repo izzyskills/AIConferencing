@@ -24,9 +24,9 @@ function useLogin() {
     onSuccess: (res) => {
       const token = res.data.access_token;
       const decodedToken = jwtDecode(token);
-      const uid = decodedToken.user.uid;
-      setAuth({ uid, token });
-      queryClient.invalidateQueries(["userdata", uid]);
+      const user = decodedToken.user;
+      setAuth({ user, token });
+      queryClient.invalidateQueries(["userdata", user.uid]);
       router.push(from, { replace: true });
     },
     onError: (err) => {
