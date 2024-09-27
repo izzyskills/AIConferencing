@@ -1,6 +1,6 @@
 import { useAuth } from "@/composables/useauth";
 import { apiClient, queryClient } from "./api";
-import { useMutation } from "@tanstack/vue-query";
+import { useMutation, useQuery } from "@tanstack/vue-query";
 import { useRouter, useRoute } from "vue-router";
 import { jwtDecode } from "jwt-decode";
 import axios from "axios";
@@ -18,7 +18,6 @@ function useLogin() {
         headers: {
           "Content-Type": "application/json",
         },
-        withCredentials: true,
       });
     },
     onSuccess: (res) => {
@@ -32,10 +31,10 @@ function useLogin() {
     onError: (err) => {
       if (axios.isAxiosError(err) && err.response) {
         const { data } = err.response;
-        if (data && data.error === "your email has not been verified") {
+        if (data && data.error_code === "invalid_email_or_password") {
           router.push(`/verify/email/${data.email}`);
         } else {
-          error.value = data.error || "An error occurred during login";
+          error.value = data.error_code || "An error occurred during login";
         }
       } else {
         error.value = "An unexpected error occurred";
@@ -77,7 +76,7 @@ function useSignup() {
     onError: (err) => {
       console.error("Signup error:", err);
       error.value =
-        err.response?.data?.error || "An error occurred during signup";
+        err.response?.data?.error_code || "An error occurred during signup";
     },
   });
 
@@ -85,6 +84,34 @@ function useSignup() {
     signup,
     error,
   };
+}
+
+function useLogout() {
+  const router = useRouter;
+  const error = ref(null);
+  const { setAuth } = useAuth();
+  const apiClientPrivate = useAxiosPrivate();
+  const logout = useMutation({
+    mutationFn: async () => {
+      try {
+        const res = await apiClientPrivate.get("/auth/logout");
+        return res.data;
+      } catch (error) {
+        handleError(error);
+      }
+    },
+    onSuccess: () => {
+      setAuth({});
+      queryClient.invalidateQueries();
+      router.push("/", { replace: true });
+    },
+    onError: (err) => {
+      console.error("Lougout error: ", err);
+      error.value =
+        err.response?.data?.error_code || "an arror occured during logging out";
+    },
+  });
+  return { error, logout };
 }
 
 export { useSignup, useLogin };
