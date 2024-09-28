@@ -24,12 +24,19 @@ from .schemas import (
 from .services import UserService
 from .utils import (
     create_access_token,
+    send_verification_mail,
     verify_password,
     generate_passwd_hash,
     create_url_safe_token,
     decode_url_safe_token,
 )
-from src.errors import UserAlreadyExists, UserNotFound, InvalidCredentials, InvalidToken
+from src.errors import (
+    AccountNotVerified,
+    UserAlreadyExists,
+    UserNotFound,
+    InvalidCredentials,
+    InvalidToken,
+)
 from src.config import Config
 
 from src.celery_tasks import send_email
@@ -82,20 +89,7 @@ async def create_user_Account(
 
     new_user = await user_service.create_user(user_data, session)
 
-    token = create_url_safe_token({"email": email})
-
-    link = f"http://{Config.DOMAIN}/api/v1/auth/verify/{token}"
-
-    html = f"""
-    <h1>Verify your Email</h1>
-    <p>Please click this <a href="{link}">link</a> to verify your email</p>
-    """
-
-    emails = [email]
-
-    subject = "Verify Your email"
-
-    send_email.delay(emails, subject, html)
+    send_verification_mail(email)
 
     return {
         "message": "Account Created! Check email to verify your account",
@@ -140,6 +134,9 @@ async def login_users(
 
     if user is not None:
         password_valid = verify_password(password, user.password_hash)
+        if password_valid and not (user.is_verified):
+            send_verification_mail(email)
+            raise AccountNotVerified()
 
         if password_valid:
             access_token = create_access_token(
