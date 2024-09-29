@@ -7,7 +7,6 @@ export function useAuth() {
   // Use storeToRefs for reactive state and computed properties
   const { authstate, isLoggedIn, getUser } = storeToRefs(authStore);
 
-  console.log(authstate, isLoggedIn, getUser);
   // Destructure methods directly
   const { setAuth, logout } = authStore;
 

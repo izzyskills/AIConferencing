@@ -4,6 +4,7 @@ import SignupView from "../views/SignupView.vue";
 import LoginView from "@/views/LoginView.vue";
 import AboutView from "@/views/AboutView.vue";
 import DashboardView from "@/views/DashboardView.vue";
+import RequireAuth from "@/views/RequireAuth.vue";
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -32,9 +33,15 @@ const router = createRouter({
       component: AboutView,
     },
     {
-      path: "/dashboard",
-      name: "dashboard",
-      component: DashboardView,
+      path: "",
+      component: RequireAuth,
+      children: [
+        {
+          path: "/dashboard",
+          name: "dashboard",
+          component: DashboardView,
+        },
+      ],
     },
   ],
 });

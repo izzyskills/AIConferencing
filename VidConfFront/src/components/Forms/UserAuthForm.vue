@@ -27,7 +27,6 @@ const { handleSubmit } = useForm({
 const { signup } = useSignup();
 
 const onSubmit = handleSubmit(async (values) => {
-  console.log("Form submitted!", values);
   try {
     isLoading.value = true;
     await signup.mutateAsync(values);

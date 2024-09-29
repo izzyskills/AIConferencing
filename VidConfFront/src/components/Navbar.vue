@@ -6,7 +6,16 @@ import DarkMode from "@/components/DarkMode.vue";
 import MenuIcon from "@/components/icons/MenuIcon.vue";
 import MountainIcon from "@/components/icons/MountainIcon.vue";
 import { useAuth } from "../composables/useauth";
+import { useLogout } from "@/adapters/requests";
 const { isLoggedIn } = useAuth();
+const { logout } = useLogout();
+const handleLogout = async () => {
+  try {
+    await logout.mutateAsync();
+  } catch (error) {
+    console.error(error);
+  }
+};
 </script>
 
 <template>
@@ -27,8 +36,8 @@ const { isLoggedIn } = useAuth();
           <Button size="sm">
             <RouterLink to="dashboard"> Dashboard </RouterLink>
           </Button>
-          <Button variant="destructive" size="sm">
-            <RouterLink to="logout"> Logout </RouterLink>
+          <Button @click="handleLogout" variant="destructive" size="sm">
+            {{ logout.isLoading ? "Logging out..." : "Logout" }}
           </Button>
           <DarkMode />
         </div>
@@ -64,8 +73,8 @@ const { isLoggedIn } = useAuth();
       <Button variant="outline" size="sm">
         <RouterLink to="dashboard"> Dashboard </RouterLink>
       </Button>
-      <Button variant="destructive" size="sm">
-        <RouterLink to="logout"> Logout </RouterLink>
+      <Button @click="handleLogout" variant="destructive" size="sm">
+        {{ logout.isLoading ? "Logging out..." : "Logout" }}
       </Button>
       <DarkMode />
     </nav>

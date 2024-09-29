@@ -5,7 +5,7 @@ import { apiClientPrivate } from "@/adapters/api";
 
 export function useAxiosPrivate() {
   const refresh = useRefreshToken();
-  const { auth, setAuth } = useAuth();
+  const { setAuth, authstate } = useAuth();
 
   let requestIntercept = null;
   let responseIntercept = null;
@@ -14,7 +14,7 @@ export function useAxiosPrivate() {
     requestIntercept = apiClientPrivate.interceptors.request.use(
       (config) => {
         if (!config.headers["Authorization"]) {
-          config.headers["Authorization"] = `Bearer ${auth.value?.token}`;
+          config.headers["Authorization"] = `Bearer ${authstate.value?.token}`;
         }
         return config;
       },

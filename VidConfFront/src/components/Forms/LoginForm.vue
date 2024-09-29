@@ -30,7 +30,6 @@ const { handleSubmit } = useForm({
 const { login } = useLogin();
 
 const onSubmit = handleSubmit(async (values) => {
-  console.log(values);
   try {
     isLoading.value = true;
     await login.mutateAsync(values);

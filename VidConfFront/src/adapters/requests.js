@@ -5,6 +5,7 @@ import { useRouter, useRoute } from "vue-router";
 import { jwtDecode } from "jwt-decode";
 import axios from "axios";
 import { ref } from "vue";
+import { useAxiosPrivate } from "@/composables/useAxiosPrivate";
 
 function useLogin() {
   const router = useRouter();
@@ -18,6 +19,7 @@ function useLogin() {
         headers: {
           "Content-Type": "application/json",
         },
+        withCredentials: true,
       });
     },
     onSuccess: (res) => {
@@ -32,7 +34,9 @@ function useLogin() {
       if (axios.isAxiosError(err) && err.response) {
         const { data } = err.response;
         if (data && data.error_code === "invalid_email_or_password") {
-          router.push(`/verify/email/${data.email}`);
+          error.value = "invalid mail or passowrd";
+        } else if (data && data.error_code === "account_not_verified") {
+          error.value = "Account not Verified \n check mail for details";
         } else {
           error.value = data.error_code || "An error occurred during login";
         }
@@ -71,7 +75,7 @@ function useSignup() {
       queryClient.invalidateQueries("userdata");
       // Note: You'll need to implement a toast notification system for Vue
       // toast.success("You have been successfully registered.");
-      router.push(`/verify/email/${data.email}`);
+      router.push("/login");
     },
     onError: (err) => {
       console.error("Signup error:", err);
@@ -87,7 +91,7 @@ function useSignup() {
 }
 
 function useLogout() {
-  const router = useRouter;
+  const router = useRouter();
   const error = ref(null);
   const { setAuth } = useAuth();
   const apiClientPrivate = useAxiosPrivate();
@@ -97,7 +101,7 @@ function useLogout() {
         const res = await apiClientPrivate.get("/auth/logout");
         return res.data;
       } catch (error) {
-        handleError(error);
+        console.error(error);
       }
     },
     onSuccess: () => {
@@ -114,4 +118,4 @@ function useLogout() {
   return { error, logout };
 }
 
-export { useSignup, useLogin };
+export { useSignup, useLogin, useLogout };
