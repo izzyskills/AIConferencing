@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends, status, BackgroundTasks
 from fastapi.exceptions import HTTPException
 from fastapi.responses import JSONResponse
+from fastapi import Response, Request
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.db.main import get_session
@@ -24,6 +25,7 @@ from .schemas import (
 from .services import UserService
 from .utils import (
     create_access_token,
+    decode_token,
     send_verification_mail,
     verify_password,
     generate_passwd_hash,
@@ -125,7 +127,9 @@ async def verify_user_account(token: str, session: AsyncSession = Depends(get_se
 
 @auth_router.post("/login")
 async def login_users(
-    login_data: UserLoginModel, session: AsyncSession = Depends(get_session)
+    login_data: UserLoginModel,
+    session: AsyncSession = Depends(get_session),
+    response: Response = None,
 ):
     email = login_data.email
     password = login_data.password
@@ -146,18 +150,23 @@ async def login_users(
                     "role": user.role,
                 }
             )
-
             refresh_token = create_access_token(
                 user_data={"email": user.email, "user_uid": str(user.uid)},
                 refresh=True,
                 expiry=timedelta(days=REFRESH_TOKEN_EXPIRY),
             )
 
+            response.set_cookie(
+                key="refresh_token",
+                value=refresh_token,
+                httponly=True,
+                max_age=REFRESH_TOKEN_EXPIRY * 24 * 60 * 60,  # Convert days to seconds
+            )
+
             return JSONResponse(
                 content={
                     "message": "Login successful",
                     "access_token": access_token,
-                    "refresh_token": refresh_token,
                     "user": {"email": user.email, "uid": str(user.uid)},
                 }
             )
@@ -166,7 +175,12 @@ async def login_users(
 
 
 @auth_router.get("/refresh_token")
-async def get_new_access_token(token_details: dict = Depends(RefreshTokenBearer())):
+async def get_new_access_token(request: Request, response: Response = None):
+    refresh_token = request.cookies.get("refresh_token")
+    if not refresh_token:
+        raise InvalidToken
+
+    token_details = decode_token(refresh_token)
     expiry_timestamp = token_details["exp"]
 
     if datetime.fromtimestamp(expiry_timestamp) > datetime.now():
@@ -178,10 +192,17 @@ async def get_new_access_token(token_details: dict = Depends(RefreshTokenBearer(
 
 
 @auth_router.get("/logout")
-async def revoke_token(token_details: dict = Depends(AccessTokenBearer())):
+async def revoke_token(
+    request: Request, token_details: dict = Depends(AccessTokenBearer())
+):
     jti = token_details["jti"]
 
     await add_jti_to_blocklist(jti)
+    refresh_token = request.cookies.get("refresh_token")
+    if refresh_token:
+        token_details = decode_token(refresh_token)
+        jti = token_details["jti"]
+        await add_jti_to_blocklist(jti)
 
     return JSONResponse(
         content={"message": "Logged Out Successfully"}, status_code=status.HTTP_200_OK
