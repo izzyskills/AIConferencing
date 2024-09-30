@@ -3,7 +3,7 @@ from datetime import date, datetime
 from typing import List, Optional
 
 import sqlalchemy.dialects.postgresql as pg
-from sqlmodel import Column, Field, Relationship, SQLModel
+from sqlmodel import CheckConstraint, Column, Field, Relationship, SQLModel
 
 
 class User(SQLModel, table=True):
@@ -20,5 +20,38 @@ class User(SQLModel, table=True):
     password_hash: str = Field(
         sa_column=Column(pg.VARCHAR, nullable=True), exclude=True
     )
+    created_at: datetime = Field(sa_column=Column(pg.TIMESTAMP, default=datetime.now))
+    update_at: datetime = Field(sa_column=Column(pg.TIMESTAMP, default=datetime.now))
+
+
+class Room(SQLModel, table=True):
+    rid: uuid.UUID = Field(
+        sa_column=Column(pg.UUID, nullable=False, primary_key=True, default=uuid.uuid4)
+    )
+    name: Optional[str] = None
+    capacity: int = Field(default=5)
+    public: bool = Field(default=True)
+    in_session: bool = Field(default=False)
+    created_by: uuid.UUID = Field(foreign_key="user.uid")
+    ended_at: Optional[datetime] = None
+    opens_at: datetime = Field(sa_column=Column(pg.TIMESTAMP, default=datetime.now))
+    created_at: datetime = Field(sa_column=Column(pg.TIMESTAMP, default=datetime.now))
+    update_at: datetime = Field(sa_column=Column(pg.TIMESTAMP, default=datetime.now))
+    members: List["RoomMember"] = Relationship(back_populates="room")
+    __tableargs__ = (
+        CheckConstraint("capacity > 2", name="check_capacity_greater_than_2"),
+        CheckConstraint("capacity<=10", name="check_capacity_less_than_10"),
+    )
+
+
+class RoomMember(SQLModel, table=True):
+    id: uuid.UUID = Field(
+        sa_column=Column(pg.UUID, nullable=False, primary_key=True, default=uuid.uuid4)
+    )
+    room_id: uuid.UUID = Field(foreign_key="room.rid", primary_key=True)
+    user_id: uuid.UUID = Field(foreign_key="user.uid", primary_key=True)
+    is_admin: bool = Field(default=False)
+    joint: bool = Field(default=False)
+    joined_at: datetime = Field(sa_column=Column(pg.TIMESTAMP, default=datetime.now))
     created_at: datetime = Field(sa_column=Column(pg.TIMESTAMP, default=datetime.now))
     update_at: datetime = Field(sa_column=Column(pg.TIMESTAMP, default=datetime.now))
