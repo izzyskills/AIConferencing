@@ -113,3 +113,9 @@ class RoomService:
         room_members = result.all()
 
         return room_members
+
+    async def get_all_room_members_emails(self, rid: uuid.UUID, session: AsyncSession):
+        statement = select(User.email).join(RoomMember).where(RoomMember.room_id == rid)
+        result = await session.exec(statement)
+        room_members_emails = result.all()
+        return room_members_emails

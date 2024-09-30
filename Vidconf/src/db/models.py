@@ -22,6 +22,7 @@ class User(SQLModel, table=True):
     )
     created_at: datetime = Field(sa_column=Column(pg.TIMESTAMP, default=datetime.now))
     update_at: datetime = Field(sa_column=Column(pg.TIMESTAMP, default=datetime.now))
+    rooms: List["Room"] = Relationship(back_populates="created_by_user")
 
 
 class Room(SQLModel, table=True):
@@ -38,6 +39,7 @@ class Room(SQLModel, table=True):
     created_at: datetime = Field(sa_column=Column(pg.TIMESTAMP, default=datetime.now))
     update_at: datetime = Field(sa_column=Column(pg.TIMESTAMP, default=datetime.now))
     members: List["RoomMember"] = Relationship(back_populates="room")
+    created_by_user: User = Relationship(back_populates="rooms")
     __tableargs__ = (
         CheckConstraint("capacity > 2", name="check_capacity_greater_than_2"),
         CheckConstraint("capacity<=10", name="check_capacity_less_than_10"),
@@ -56,3 +58,4 @@ class RoomMember(SQLModel, table=True):
     created_at: datetime = Field(sa_column=Column(pg.TIMESTAMP, default=datetime.now))
     update_at: datetime = Field(sa_column=Column(pg.TIMESTAMP, default=datetime.now))
     room: Room = Relationship(back_populates="members")
+    user: User = Relationship(back_populates="rooms")
