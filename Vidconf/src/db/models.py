@@ -55,3 +55,4 @@ class RoomMember(SQLModel, table=True):
     joined_at: datetime = Field(sa_column=Column(pg.TIMESTAMP, default=datetime.now))
     created_at: datetime = Field(sa_column=Column(pg.TIMESTAMP, default=datetime.now))
     update_at: datetime = Field(sa_column=Column(pg.TIMESTAMP, default=datetime.now))
+    room: Room = Relationship(back_populates="members")
