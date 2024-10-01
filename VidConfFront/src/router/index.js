@@ -33,15 +33,8 @@ const router = createRouter({
       component: AboutView,
     },
     {
-      path: "",
-      component: RequireAuth,
-      children: [
-        {
-          path: "/dashboard",
-          name: "dashboard",
-          component: DashboardView,
-        },
-      ],
+      path: "/dashboard",
+      component: DashboardView,
     },
   ],
 });

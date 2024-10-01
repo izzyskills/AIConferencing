@@ -1,5 +1,5 @@
 <script setup>
-import ScheduledMeeting from "@/components/ScheduledMeeting.vue";
+import ScheduledMeeting from "@/components/Forms/ScheduledMeetingForm.vue";
 </script>
 
 <template>
