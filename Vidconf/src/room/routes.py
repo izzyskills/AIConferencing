@@ -1,7 +1,7 @@
 import uuid
 from fastapi import APIRouter, Depends
 from sqlmodel.ext.asyncio.session import AsyncSession
-from auth.dependencies import AccessTokenBearer
+from src.auth.dependencies import AccessTokenBearer
 from src.auth.schemas import EmailModel
 from src.celery_tasks import send_email
 from src.config import Config
