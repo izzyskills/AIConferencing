@@ -1,3 +1,4 @@
+from datetime import timedelta
 import uuid
 from fastapi import APIRouter, Depends
 from sqlmodel.ext.asyncio.session import AsyncSession
@@ -14,12 +15,15 @@ room_router = APIRouter()
 room_service = RoomService()
 
 
-@room_router.post("/create_room")
+@room_router.post("/create")
 async def create_room(
     room_data: CreateRoomModel,
     token: dict = Depends(AccessTokenBearer()),
     session: AsyncSession = Depends(get_session),
 ):
+    print(token["user"]["user_uid"], room_data.created_by)
+    if str(token["user"]["user_uid"]) != str(room_data.created_by):
+        raise InvalidCredentials
     new_room = await room_service.create_room(room_data, session)
     members_email = await room_service.get_all_room_members_emails(
         new_room.rid, session
@@ -39,7 +43,7 @@ async def create_room(
     return new_room
 
 
-@room_router.post("/join_room/{rid}")
+@room_router.post("/join/{rid}")
 async def join_room(
     rid: uuid.UUID,
     room_member_data: RoomMemberModel,

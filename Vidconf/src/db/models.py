@@ -38,7 +38,7 @@ class Room(SQLModel, table=True):
     ended_at: Optional[datetime] = None
     opens_at: datetime = Field(sa_column=Column(pg.TIMESTAMP, default=datetime.now))
     closes_at: datetime = Field(
-        sa_column=Column(pg.TIMESTAMP, default=datetime.now + timedelta(hours=1))
+        sa_column=Column(pg.TIMESTAMP, default=datetime.now() + timedelta(hours=1))
     )
     created_at: datetime = Field(sa_column=Column(pg.TIMESTAMP, default=datetime.now))
     update_at: datetime = Field(sa_column=Column(pg.TIMESTAMP, default=datetime.now))
@@ -47,6 +47,12 @@ class Room(SQLModel, table=True):
     __tableargs__ = (
         CheckConstraint("capacity > 2", name="check_capacity_greater_than_2"),
         CheckConstraint("capacity<=10", name="check_capacity_less_than_10"),
+        CheckConstraint("opens_at < closes_at", name="check_opens_before_closes"),
+        # add a constraint that the duration of the room should not exceed 1 hou
+        CheckConstraint(
+            "opens_at + interval '1 hour' >= closes_at",
+            name="check_duration doesnt excced 1 hour",
+        ),
     )
 
 
