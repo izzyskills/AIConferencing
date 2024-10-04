@@ -27,15 +27,18 @@ const signup_schema = z
 // a schema to create a meeting with a title capacacity greater than 1 and less than 11 and a date either now or in the future using zod
 // also there is a make private checkbox that is not included in the schema and in the api its called public so when submitting it meant to be the opposite of what the user selected
 const meeting_schema = z.object({
-  title: z.string().min(2, "Title must be at least 2 characters"),
+  name: z.string().min(2, "Title must be at least 2 characters"),
   capacity: z
     .number()
     .min(2, "Capacity must be at least 2")
     .max(10, "Capacity must be at most 10"),
-  date: z.date().refine((date) => date.getTime() > Date.now(), {
-    message: "Date must be in the future",
+  opens_at: z.string().transform((data) => {
+    if (new Date(data) < new Date()) {
+      data = new Date().toISOString();
+    }
+    return new Date(data).toISOString();
   }),
-  private: z.boolean().transform((data) => {
+  public: z.boolean().transform((data) => {
     return !data;
   }),
 });

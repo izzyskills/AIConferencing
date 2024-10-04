@@ -22,43 +22,30 @@ import { Input } from "@/components/ui/input";
 import { useForm } from "vee-validate";
 import { toTypedSchema } from "@vee-validate/zod";
 import { meeting_schema } from "./schemas";
+import { useAuth } from "@/composables/useauth";
+import { useCreateRoom } from "@/adapters/requests";
+
+const { getUser } = useAuth();
 const formSchema = toTypedSchema(meeting_schema);
 const { handleSubmit } = useForm({
   validationSchema: formSchema,
   initialValues: {
-    title: "",
+    name: "",
     capacity: 2,
-    date: new Date().toISOString().slice(0, 16),
-    private: false,
+    opens_at: new Date().toISOString().slice(0, 16),
+    public: false,
   },
 });
-const date = ref(new Date().toISOString().slice(0, 16));
-const formattedDate = computed(() => {
-  return date.value.toString().slice(0, 16);
-});
-const updateDate = (value) => {
-  date.value = new Date(value);
-};
-
-const checkDate = () => {
-  if (date.value < new Date()) {
-    date.value = new Date();
-  }
-};
-
+const { createRoom } = useCreateRoom();
 const onSubmit = handleSubmit(async (values) => {
-  checkDate();
+  const created_by = getUser.value.user_uid;
+  values["created_by"] = created_by;
+  if (new Date(values.opens_at) <= new Date()) {
+    values["in_session"] = true;
+  }
+  createRoom.mutateAsync(values);
   console.log(values);
 });
-
-onMounted(
-  () => {
-    const interval = setInterval(checkDate, 6000);
-  },
-  onUnmounted(() => {
-    clearInterval(interval);
-  }),
-);
 </script>
 <template>
   <div class="flex w-full justify-center">
@@ -72,7 +59,7 @@ onMounted(
       </CardHeader>
       <CardContent class="grid gap-4">
         <form @submit="onSubmit" class="grid gap-4">
-          <FormField v-slot="{ componentField }" type="text" name="title">
+          <FormField v-slot="{ componentField }" type="text" name="name">
             <FormItem>
               <FormLabel> Meeting Title</FormLabel>
               <FormControl>
@@ -80,8 +67,8 @@ onMounted(
                   v-bind="componentField"
                   type="text"
                   placeholder="name for meeting"
-                  name="title"
-                  id="title"
+                  name="name"
+                  id="name"
                 />
               </FormControl>
               <FormMessage />
@@ -100,7 +87,7 @@ onMounted(
           <FormField
             v-slot="{ componentField }"
             type="datetime-local"
-            name="date"
+            name="opens_at"
           >
             <FormItem>
               <FormLabel>Meeting Date</FormLabel>
@@ -108,9 +95,7 @@ onMounted(
                 <Input
                   v-bind="componentField"
                   type="datetime-local"
-                  name="date"
-                  :value="formattedDate"
-                  @input="updateDate($event.target.value)"
+                  name="opens_at"
                 />
               </FormControl>
               <FormMessage />
@@ -119,7 +104,7 @@ onMounted(
           <FormField
             v-slot="{ value, handleChange }"
             type="checkbox"
-            name="private"
+            name="public"
           >
             <FormItem
               class="flex flex-row items-start gap-x-3 space-y-0 rounded-md border p-4 shadow"

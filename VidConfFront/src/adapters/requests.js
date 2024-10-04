@@ -118,4 +118,26 @@ function useLogout() {
   return { error, logout };
 }
 
-export { useSignup, useLogin, useLogout };
+function useCreateRoom() {
+  const router = useRouter();
+  const error = ref(null);
+  const apiClientPrivate = useAxiosPrivate();
+  const createRoom = useMutation({
+    mutationFn: async (formData) => {
+      try {
+        console.log(formData);
+        const res = await apiClientPrivate.post("/room/create", formData, {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+        return res.data;
+      } catch (error) {
+        console.error(error);
+      }
+    },
+  });
+  return { error, createRoom };
+}
+
+export { useSignup, useLogin, useLogout, useCreateRoom };
