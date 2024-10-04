@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from "vue";
+import { ref, computed, onMounted, onUnmounted } from "vue";
 import { Button } from "@/components/ui/button/";
 import {
   FormControl,
@@ -25,10 +25,40 @@ import { meeting_schema } from "./schemas";
 const formSchema = toTypedSchema(meeting_schema);
 const { handleSubmit } = useForm({
   validationSchema: formSchema,
+  initialValues: {
+    title: "",
+    capacity: 2,
+    date: new Date().toISOString().slice(0, 16),
+    private: false,
+  },
 });
+const date = ref(new Date().toISOString().slice(0, 16));
+const formattedDate = computed(() => {
+  return date.value.toString().slice(0, 16);
+});
+const updateDate = (value) => {
+  date.value = new Date(value);
+};
+
+const checkDate = () => {
+  if (date.value < new Date()) {
+    date.value = new Date();
+  }
+};
+
 const onSubmit = handleSubmit(async (values) => {
+  checkDate();
   console.log(values);
 });
+
+onMounted(
+  () => {
+    const interval = setInterval(checkDate, 6000);
+  },
+  onUnmounted(() => {
+    clearInterval(interval);
+  }),
+);
 </script>
 <template>
   <div class="flex w-full justify-center">
@@ -49,6 +79,7 @@ const onSubmit = handleSubmit(async (values) => {
                 <Input
                   v-bind="componentField"
                   type="text"
+                  placeholder="name for meeting"
                   name="title"
                   id="title"
                 />
@@ -61,12 +92,7 @@ const onSubmit = handleSubmit(async (values) => {
             <FormItem>
               <FormLabel>Meeting Capacity</FormLabel>
               <FormControl>
-                <Input
-                  v-bind="componentField"
-                  type="number"
-                  name="capacity"
-                  id="capacity"
-                />
+                <Input v-bind="componentField" name="capacity" id="capacity" />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -83,18 +109,23 @@ const onSubmit = handleSubmit(async (values) => {
                   v-bind="componentField"
                   type="datetime-local"
                   name="date"
-                  id="date"
+                  :value="formattedDate"
+                  @input="updateDate($event.target.value)"
                 />
               </FormControl>
               <FormMessage />
             </FormItem>
           </FormField>
-          <FormField v-slot="{ componentField }" type="checkbox" name="private">
+          <FormField
+            v-slot="{ value, handleChange }"
+            type="checkbox"
+            name="private"
+          >
             <FormItem
               class="flex flex-row items-start gap-x-3 space-y-0 rounded-md border p-4 shadow"
             >
               <FormControl>
-                <Checkbox v-bind="componentField" id="private" />
+                <Checkbox :checked="value" @update:checked="handleChange" />
               </FormControl>
               <div class="space-y-1 leading-none">
                 <FormLabel>Make Meeting Private</FormLabel>

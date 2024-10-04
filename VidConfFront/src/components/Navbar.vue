@@ -91,10 +91,10 @@ const handleLogout = async () => {
       >
         About
       </RouterLink>
-      <RouterLink to="login">
+      <RouterLink to="/login">
         <Button variant="outline" size="sm"> Login </Button>
       </RouterLink>
-      <RouterLink to="signup">
+      <RouterLink to="/signup">
         <Button size="sm"> Register </Button>
       </RouterLink>
       <DarkMode />
