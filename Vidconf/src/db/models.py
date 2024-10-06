@@ -5,6 +5,8 @@ from typing import List, Optional
 import sqlalchemy.dialects.postgresql as pg
 from sqlmodel import CheckConstraint, Column, Field, Relationship, SQLModel
 
+from src.db.utils import DateTimeString
+
 
 class User(SQLModel, table=True):
     uid: uuid.UUID = Field(
@@ -36,24 +38,12 @@ class Room(SQLModel, table=True):
     in_session: bool = Field(default=False)
     created_by: uuid.UUID = Field(foreign_key="user.uid")
     ended_at: Optional[datetime] = None
-    opens_at: datetime = Field(sa_column=Column(pg.TIMESTAMP, default=datetime.now))
-    closes_at: datetime = Field(
-        sa_column=Column(pg.TIMESTAMP, default=datetime.now() + timedelta(hours=1))
-    )
+    opens_at: datetime = Field(sa_column=Column(DateTimeString))
+    closes_at: datetime = Field(sa_column=Column(DateTimeString))
     created_at: datetime = Field(sa_column=Column(pg.TIMESTAMP, default=datetime.now))
     update_at: datetime = Field(sa_column=Column(pg.TIMESTAMP, default=datetime.now))
     created_by_user: User = Relationship(back_populates="rooms")
     members: List["RoomMember"] = Relationship(back_populates="room")
-    __tableargs__ = (
-        CheckConstraint("capacity > 2", name="check_capacity_greater_than_2"),
-        CheckConstraint("capacity<=10", name="check_capacity_less_than_10"),
-        CheckConstraint("opens_at < closes_at", name="check_opens_before_closes"),
-        # add a constraint that the duration of the room should not exceed 1 hou
-        CheckConstraint(
-            "opens_at + interval '1 hour' >= closes_at",
-            name="check_duration doesnt excced 1 hour",
-        ),
-    )
 
 
 class RoomMember(SQLModel, table=True):
