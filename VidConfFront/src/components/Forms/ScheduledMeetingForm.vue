@@ -24,6 +24,9 @@ import { toTypedSchema } from "@vee-validate/zod";
 import { meeting_schema } from "./schemas";
 import { useAuth } from "@/composables/useauth";
 import { useCreateRoom } from "@/adapters/requests";
+import { Separator } from "@/components//ui/separator";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { XCircleIcon } from "lucide-vue-next";
 
 const { getUser } = useAuth();
 const formSchema = toTypedSchema(meeting_schema);
@@ -121,7 +124,34 @@ const onSubmit = handleSubmit(async (values) => {
               </div>
             </FormItem>
           </FormField>
-
+          <div>
+            <div class="flex space-x-2">
+              <Input />
+              <Button variant="secondary" class="shrink-0"> Copy Link </Button>
+            </div>
+            <Separator class="my-4" />
+            <div class="space-y-4">
+              <h4 class="text-sm font-medium">People with access</h4>
+              <div class="grid gap-6">
+                <div class="flex items-center justify-between space-x-4">
+                  <div class="flex items-center space-x-4">
+                    <Avatar>
+                      <AvatarImage src="/avatars/03.png" />
+                      <AvatarFallback>OM</AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <p class="text-sm font-medium leading-none">
+                        Olivia Martin
+                      </p>
+                      <p class="text-sm text-muted-foreground">m@example.com</p>
+                    </div>
+                  </div>
+                  <Button variant="outline">Participant</Button>
+                </div>
+                <XCircleIcon class="w-6 h-6 text-destructive" />
+              </div>
+            </div>
+          </div>
           <Button type="submit"> Create Meeting </Button>
         </form>
       </CardContent>
