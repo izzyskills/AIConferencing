@@ -55,10 +55,7 @@ const onSubmit = handleSubmit(async (values) => {
     <Card class="md:min-w-[30rem]">
       <CardHeader class="space-y-1">
         <CardTitle class="text-2xl">Create a Meeting</CardTitle>
-        <CardDescription
-          >schedule a meeting with your team<br />note meetings only last for an
-          hour</CardDescription
-        >
+        <CardDescription>note meetings only last for an hour</CardDescription>
       </CardHeader>
       <CardContent class="grid gap-4">
         <form @submit="onSubmit" class="grid gap-4">
@@ -127,7 +124,9 @@ const onSubmit = handleSubmit(async (values) => {
           <div>
             <div class="flex space-x-2">
               <Input />
-              <Button variant="secondary" class="shrink-0"> Copy Link </Button>
+              <Button variant="secondary" class="shrink-0">
+                Add Participant
+              </Button>
             </div>
             <Separator class="my-4" />
             <div class="space-y-4">
