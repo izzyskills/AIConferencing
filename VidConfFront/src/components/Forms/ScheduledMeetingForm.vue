@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from "vue";
+import { ref } from "vue";
 import { Button } from "@/components/ui/button/";
 import {
   FormControl,
@@ -25,8 +25,7 @@ import { meeting_schema } from "./schemas";
 import { useAuth } from "@/composables/useauth";
 import { useCreateRoom } from "@/adapters/requests";
 import { Separator } from "@/components//ui/separator";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { XCircleIcon } from "lucide-vue-next";
+import AddParticipant from "../cards/addParticipant.vue";
 
 const { getUser } = useAuth();
 const formSchema = toTypedSchema(meeting_schema);
@@ -50,6 +49,7 @@ const onSubmit = handleSubmit(async (values) => {
   console.log(values);
 });
 </script>
+
 <template>
   <div class="flex w-full justify-center">
     <Card class="md:min-w-[30rem]">
@@ -59,95 +59,97 @@ const onSubmit = handleSubmit(async (values) => {
       </CardHeader>
       <CardContent class="grid gap-4">
         <form @submit="onSubmit" class="grid gap-4">
-          <FormField v-slot="{ componentField }" type="text" name="name">
-            <FormItem>
-              <FormLabel> Meeting Title</FormLabel>
-              <FormControl>
-                <Input
-                  v-bind="componentField"
-                  type="text"
-                  placeholder="name for meeting"
-                  name="name"
-                  id="name"
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          </FormField>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <FormField v-slot="{ componentField }" type="text" name="name">
+                <FormItem>
+                  <FormLabel> Meeting Title</FormLabel>
+                  <FormControl>
+                    <Input
+                      v-bind="componentField"
+                      type="text"
+                      placeholder="name for meeting"
+                      name="name"
+                      id="name"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              </FormField>
 
-          <FormField v-slot="{ componentField }" type="number" name="capacity">
-            <FormItem>
-              <FormLabel>Meeting Capacity</FormLabel>
-              <FormControl>
-                <Input v-bind="componentField" name="capacity" id="capacity" />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          </FormField>
-          <FormField
-            v-slot="{ componentField }"
-            type="datetime-local"
-            name="opens_at"
-          >
-            <FormItem>
-              <FormLabel>Meeting Date</FormLabel>
-              <FormControl>
-                <Input
-                  v-bind="componentField"
-                  type="datetime-local"
-                  name="opens_at"
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          </FormField>
-          <FormField
-            v-slot="{ value, handleChange }"
-            type="checkbox"
-            name="public"
-          >
-            <FormItem
-              class="flex flex-row items-start gap-x-3 space-y-0 rounded-md border p-4 shadow"
-            >
-              <FormControl>
-                <Checkbox :checked="value" @update:checked="handleChange" />
-              </FormControl>
-              <div class="space-y-1 leading-none">
-                <FormLabel>Make Meeting Private</FormLabel>
-                <FormDescription>
-                  this will only allow invited participants to join
-                </FormDescription>
-                <FormMessage />
-              </div>
-            </FormItem>
-          </FormField>
-          <div>
-            <div class="flex space-x-2">
-              <Input />
-              <Button variant="secondary" class="shrink-0">
-                Add Participant
-              </Button>
-            </div>
-            <Separator class="my-4" />
-            <div class="space-y-4">
-              <h4 class="text-sm font-medium">People with access</h4>
-              <div class="grid gap-6">
-                <div class="flex items-center justify-between space-x-4">
-                  <div class="flex items-center space-x-4">
-                    <Avatar>
-                      <AvatarImage src="/avatars/03.png" />
-                      <AvatarFallback>OM</AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <p class="text-sm font-medium leading-none">
-                        Olivia Martin
-                      </p>
-                      <p class="text-sm text-muted-foreground">m@example.com</p>
-                    </div>
+              <FormField
+                v-slot="{ componentField }"
+                type="number"
+                name="capacity"
+              >
+                <FormItem>
+                  <FormLabel>Meeting Capacity</FormLabel>
+                  <FormControl>
+                    <Input
+                      v-bind="componentField"
+                      name="capacity"
+                      id="capacity"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              </FormField>
+              <FormField
+                v-slot="{ componentField }"
+                type="datetime-local"
+                name="opens_at"
+              >
+                <FormItem>
+                  <FormLabel>Meeting Date</FormLabel>
+                  <FormControl>
+                    <Input
+                      v-bind="componentField"
+                      type="datetime-local"
+                      name="opens_at"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              </FormField>
+              <FormField
+                v-slot="{ value, handleChange }"
+                type="checkbox"
+                name="public"
+              >
+                <FormItem
+                  class="flex flex-row items-start gap-x-3 space-y-0 rounded-md border p-4 shadow"
+                >
+                  <FormControl>
+                    <Checkbox :checked="value" @update:checked="handleChange" />
+                  </FormControl>
+                  <div class="space-y-1 leading-none">
+                    <FormLabel>Make Meeting Private</FormLabel>
+                    <FormDescription>
+                      this will only allow invited participants to join
+                    </FormDescription>
+                    <FormMessage />
                   </div>
-                  <Button variant="outline">Participant</Button>
+                </FormItem>
+              </FormField>
+            </div>
+            <!-- Conditionally render the div based on isChecked -->
+            <div :class="`md:mt-8`">
+              <div class="flex space-x-2">
+                <Input />
+                <Button variant="secondary" class="shrink-0">
+                  Add Participant
+                </Button>
+              </div>
+              <Separator class="my-4" />
+              <div class="space-y-4">
+                <h4 class="text-sm font-medium">People with access</h4>
+                <div class="grid gap-6">
+                  <AddParticipant
+                    name="John Doe"
+                    email="Johndoe@gmail.com"
+                    imagelink="https://randomuser.me/api/port"
+                  />
                 </div>
-                <XCircleIcon class="w-6 h-6 text-destructive" />
               </div>
             </div>
           </div>
@@ -157,3 +159,4 @@ const onSubmit = handleSubmit(async (values) => {
     </Card>
   </div>
 </template>
+```
