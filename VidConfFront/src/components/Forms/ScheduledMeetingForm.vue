@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from "vue";
+import { computed, ref } from "vue";
 import { Button } from "@/components/ui/button/";
 import {
   FormControl,
@@ -29,7 +29,7 @@ import AddParticipant from "../cards/addParticipant.vue";
 
 const { getUser } = useAuth();
 const formSchema = toTypedSchema(meeting_schema);
-const { handleSubmit } = useForm({
+const { handleSubmit, defineField } = useForm({
   validationSchema: formSchema,
   initialValues: {
     name: "",
@@ -38,6 +38,7 @@ const { handleSubmit } = useForm({
     public: false,
   },
 });
+const isChecked = ref(false);
 const { createRoom } = useCreateRoom();
 const onSubmit = handleSubmit(async (values) => {
   const created_by = getUser.value.user_uid;
@@ -59,8 +60,8 @@ const onSubmit = handleSubmit(async (values) => {
       </CardHeader>
       <CardContent class="grid gap-4">
         <form @submit="onSubmit" class="grid gap-4">
-          <div class="grid grid-cols-2 gap-2">
-            <div>
+          <div :class="isChecked ? ` grid md:grid-cols-2 gap-2` : ``">
+            <div class="gird gap-4">
               <FormField v-slot="{ componentField }" type="text" name="name">
                 <FormItem>
                   <FormLabel> Meeting Title</FormLabel>
@@ -117,10 +118,19 @@ const onSubmit = handleSubmit(async (values) => {
                 name="public"
               >
                 <FormItem
-                  class="flex flex-row items-start gap-x-3 space-y-0 rounded-md border p-4 shadow"
+                  class="flex flex-row items-start gap-x-3 space-y-0 rounded-md border p-4 shadow mt-4"
                 >
                   <FormControl>
-                    <Checkbox :checked="value" @update:checked="handleChange" />
+                    <Checkbox
+                      v-bind="isChecked"
+                      :checked="value"
+                      @update:checked="
+                        (value) => {
+                          handleChange(value);
+                          isChecked = !isChecked;
+                        }
+                      "
+                    />
                   </FormControl>
                   <div class="space-y-1 leading-none">
                     <FormLabel>Make Meeting Private</FormLabel>
@@ -133,23 +143,24 @@ const onSubmit = handleSubmit(async (values) => {
               </FormField>
             </div>
             <!-- Conditionally render the div based on isChecked -->
-            <div :class="`md:mt-8`">
-              <div class="flex space-x-2">
-                <Input />
-                <Button variant="secondary" class="shrink-0">
-                  Add Participant
-                </Button>
-              </div>
-              <Separator class="my-4" />
+            <div v-if="isChecked" :class="`md:mt-8`">
+              <Separator class="md:hidden my-4" />
               <div class="space-y-4">
                 <h4 class="text-sm font-medium">People with access</h4>
                 <div class="grid gap-6">
                   <AddParticipant
                     name="John Doe"
                     email="Johndoe@gmail.com"
-                    imagelink="https://randomuser.me/api/port"
+                    imagelink="https://randomuser.me/api/portraits/lego/0.jpg"
                   />
                 </div>
+              </div>
+              <Separator class="my-4" />
+              <div class="flex space-x-2">
+                <Input />
+                <Button variant="secondary" class="shrink-0">
+                  Add Participant
+                </Button>
               </div>
             </div>
           </div>
