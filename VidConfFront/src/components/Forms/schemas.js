@@ -24,40 +24,17 @@ const signup_schema = z
     }
   });
 
-const meeting_schema = z
-  .object({
-    name: z.string().min(2, "Title must be at least 2 characters"),
-    capacity: z
-      .number()
-      .min(2, "Capacity must be at least 2")
-      .max(10, "Capacity must be at most 10"),
-    opens_at: z.string().transform((data) => {
-      if (new Date(data) < new Date()) {
-        data = new Date().toISOString();
-      }
-      return new Date(data).toISOString();
-    }),
-    public: z.boolean().transform((data) => {
-      return !data;
-    }),
-    members: z.array(z.string().email("Invalid email address")).isNullable(),
-  })
-  .superRefine((data, ctx) => {
-    if (data.members && data.members.length > data.capacity) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Members cannot be greater than capacity",
-        path: ["capacity"],
-      });
+const meeting_schema = z.object({
+  name: z.string().min(2, "Title must be at least 2 characters"),
+  opens_at: z.string().transform((data) => {
+    if (new Date(data) < new Date()) {
+      data = new Date().toISOString();
     }
-    if (!data.public && data.members.length < 2) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message:
-          "you have to have at least a participant if the meeting is private",
-        path: ["public"],
-      });
-    }
-  });
+    return new Date(data).toISOString();
+  }),
+  public: z.boolean().transform((data) => {
+    return !data;
+  }),
+});
 
 export { login_schema, signup_schema, meeting_schema };

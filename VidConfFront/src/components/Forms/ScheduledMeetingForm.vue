@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from "vue";
+import { ref } from "vue";
 import { Button } from "@/components/ui/button/";
 import {
   FormControl,
@@ -29,7 +29,7 @@ import AddParticipant from "../cards/addParticipant.vue";
 
 const { getUser } = useAuth();
 const formSchema = toTypedSchema(meeting_schema);
-const { handleSubmit, defineField } = useForm({
+const { handleSubmit } = useForm({
   validationSchema: formSchema,
   initialValues: {
     name: "",
@@ -39,10 +39,23 @@ const { handleSubmit, defineField } = useForm({
   },
 });
 const isChecked = ref(false);
+const participants = ref([]);
+const current_participant = ref("");
+const addParticipant = () => {
+  participants.value.push(current_participant.value);
+  current_participant.value = "";
+};
+const removeParticipant = (participant) => {
+  participants.value = participants.value.filter(
+    (p) => p.email !== participant.email,
+  );
+};
 const { createRoom } = useCreateRoom();
 const onSubmit = handleSubmit(async (values) => {
   const created_by = getUser.value.user_uid;
   values["created_by"] = created_by;
+  participant.value.push(getUser.value.email);
+  values["members"] = participants.value;
   if (new Date(values.opens_at) <= new Date()) {
     values["in_session"] = true;
   }
@@ -72,24 +85,6 @@ const onSubmit = handleSubmit(async (values) => {
                       placeholder="name for meeting"
                       name="name"
                       id="name"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              </FormField>
-
-              <FormField
-                v-slot="{ componentField }"
-                type="number"
-                name="capacity"
-              >
-                <FormItem>
-                  <FormLabel>Meeting Capacity</FormLabel>
-                  <FormControl>
-                    <Input
-                      v-bind="componentField"
-                      name="capacity"
-                      id="capacity"
                     />
                   </FormControl>
                   <FormMessage />
@@ -146,28 +141,43 @@ const onSubmit = handleSubmit(async (values) => {
             <div v-if="isChecked" :class="`md:mt-8`">
               <Separator class="md:hidden my-4" />
               <div class="space-y-4">
-                <h4 class="text-sm font-medium">People with access</h4>
+                <div>
+                  <h4 class="text-sm font-medium">People with access</h4>
+                  <h6 class="text-xs font-light text-muted-foreground">
+                    Must be at least 2 participants
+                  </h6>
+                </div>
                 <div class="grid gap-6">
+                  <AddParticipant :email="getUser.email" :role="`Admin`" />
                   <AddParticipant
-                    name="John Doe"
-                    email="Johndoe@gmail.com"
-                    imagelink="https://randomuser.me/api/portraits/lego/0.jpg"
+                    v-for="(participant, index) in participants"
+                    :key="index"
+                    :email="participant"
+                    :removeParticipant="removeParticipant"
                   />
                 </div>
               </div>
               <Separator class="my-4" />
               <div class="flex space-x-2">
-                <Input />
-                <Button variant="secondary" class="shrink-0">
+                <Input v-model="current_participant" type="email" />
+                <Button
+                  variant="secondary"
+                  @click="addParticipant"
+                  class="shrink-0"
+                >
                   Add Participant
                 </Button>
               </div>
             </div>
           </div>
-          <Button type="submit"> Create Meeting </Button>
+          <Button
+            :disabled="isChecked && participants.length < 1"
+            type="submit"
+          >
+            Create Meeting
+          </Button>
         </form>
       </CardContent>
     </Card>
   </div>
 </template>
-```
