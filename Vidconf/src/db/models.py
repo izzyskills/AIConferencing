@@ -33,7 +33,6 @@ class Room(SQLModel, table=True):
         sa_column=Column(pg.UUID, nullable=False, primary_key=True, default=uuid.uuid4)
     )
     name: Optional[str] = None
-    capacity: int = Field(default=5)
     public: bool = Field(default=True)
     in_session: bool = Field(default=False)
     created_by: uuid.UUID = Field(foreign_key="user.uid")

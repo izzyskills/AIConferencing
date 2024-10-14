@@ -2,49 +2,47 @@ import uuid
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.db.models import Room, RoomMember, User
+from src.room.utils import convert_email_to_RoomMemberModel
 from .schemas import CreateRoomModel, RoomMemberModel
 
 
 class RoomService:
     async def create_room(self, room_data: CreateRoomModel, session: AsyncSession):
         room_data_dict = room_data.model_dump()
-        room_admin = room_data_dict["created_by"]
-        user = select(User).where(User.uid == room_admin)
-        user = (await session.exec(user)).first()
+
+        # Get the user by UUID
+        created_by_uuid = room_data_dict["created_by"]
+        user = await session.exec(select(User).where(User.uid == created_by_uuid))
+        user = user.first()
         if user is None:
-            raise ValueError("User not found")
+            raise ValueError(f"User with UUID {created_by_uuid} not found")
+
+        creator_email = user.email
         new_room = Room(**room_data_dict)
-        # a check to ensure that the the room admin is part of the room room_members
-        if new_room.members:
-            if new_room.created_by not in [
-                member.user_id for member in new_room.members
-            ]:
-                new_room.members.append(
-                    RoomMember(
-                        **{
-                            "room_id": new_room.rid,
-                            "user_id": new_room.created_by,
-                            "is_admin": True,
-                            "joint": True,
-                        }
-                    )
-                )
-        else:
-            new_room.members = [
+
+        # Convert member emails to RoomMemberModel objects
+        member_emails = room_data_dict.get("members", [])
+        new_room.members = []
+
+        for email in member_emails:
+            is_admin = email == creator_email
+            member = await convert_email_to_RoomMemberModel(
+                session, email, new_room.rid, is_admin=is_admin, joint=is_admin
+            )
+            if member:
+                new_room.members.append(RoomMember(**member.model_dump()))
+
+        # Ensure the creator is always a member and admin
+        if not any(member.user_id == user.uid for member in new_room.members):
+            new_room.members.append(
                 RoomMember(
-                    **{
-                        "room_id": new_room.rid,
-                        "user_id": new_room.created_by,
-                        "is_admin": True,
-                        "joint": True,
-                    }
+                    room_id=new_room.rid, user_id=user.uid, is_admin=True, joint=True
                 )
-            ]
+            )
 
         session.add(new_room)
-
         await session.commit()
-
+        await session.refresh(new_room)
         return new_room
 
     async def get_room_by_id(self, rid: uuid.UUID, session: AsyncSession):

@@ -13,13 +13,12 @@ class RoomMemberModel(BaseModel):
 
 class CreateRoomModel(BaseModel):
     name: str
-    capacity: Optional[int] = Field(lt=11, gt=1)
     public: Optional[bool] = True
     in_session: Optional[bool] = False
     opens_at: Optional[datetime] = datetime.now()
     closes_at: Optional[datetime] = None
     created_by: uuid.UUID
-    members: Optional[List[RoomMemberModel]] = []
+    members: Optional[List[str]] = []
 
     def __init__(self, **data) -> None:
         super().__init__(**data)
