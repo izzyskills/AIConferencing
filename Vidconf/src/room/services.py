@@ -36,7 +36,12 @@ class RoomService:
         if not any(member.user_id == user.uid for member in new_room.members):
             new_room.members.append(
                 RoomMember(
-                    room_id=new_room.rid, user_id=user.uid, is_admin=True, joint=True
+                    **{
+                        "room_id": new_room.rid,
+                        "user_id": user.uid,
+                        "is_admin": True,
+                        "joint": True,
+                    }
                 )
             )
 
@@ -64,7 +69,7 @@ class RoomService:
         room = (await session.exec(room)).first()
         if room is None:
             raise ValueError("Room not found")
-        if room.capacity <= len(room.members):
+        if len(room.members) >= 10:
             raise ValueError("Room is full")
         if not room.public:
             raise ValueError("Room is private")
