@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from "vue";
+import { ref, onMounted, onBeforeUnmount, watch } from "vue";
 import {
   Mic,
   MicOff,
@@ -10,46 +10,37 @@ import {
   UserMinus,
 } from "lucide-vue-next";
 import { Button } from "@/components/ui/button";
+import { WS_EVENTS } from "@/config";
+import { videoConfiguration } from "@/mixins/WebRTC";
+import { useStore } from "vuex";
 
-const participants = ref([
-  { id: 1, name: "You", isMuted: false, isVideoOff: false, isLocal: true },
-]);
+const props = defineProps({
+  conference: Object,
+  users: Array,
+});
+
+const store = useStore();
+const conference = props.conference;
 
 const localMuted = ref(false);
 const localVideoOff = ref(false);
+const peers = ref({});
+const peersLength = ref(0);
 
 const toggleMute = () => {
   localMuted.value = !localMuted.value;
-  updateLocalParticipant("isMuted", localMuted.value);
 };
 
 const toggleVideo = () => {
   localVideoOff.value = !localVideoOff.value;
-  updateLocalParticipant("isVideoOff", localVideoOff.value);
-};
-
-const updateLocalParticipant = (key, value) => {
-  participants.value = participants.value.map((p) =>
-    p.isLocal ? { ...p, [key]: value } : p,
-  );
 };
 
 const addParticipant = () => {
-  if (participants.value.length < 10) {
-    participants.value.push({
-      id: participants.value.length + 1,
-      name: `User ${participants.value.length + 1}`,
-      isMuted: false,
-      isVideoOff: false,
-      isLocal: false,
-    });
-  }
+  // Add participant logic
 };
 
 const removeParticipant = () => {
-  if (participants.value.length > 1) {
-    participants.value.pop();
-  }
+  // Remove participant logic
 };
 
 const getGridColumns = (count) => {
@@ -57,45 +48,106 @@ const getGridColumns = (count) => {
   if (count <= 4) return "grid-cols-2 sm:grid-cols-2";
   return "grid-cols-3 sm:grid-cols-3";
 };
+
+const initWebRTC = (user, desc) => {
+  peers.value[user] = {
+    username: user,
+    pc: new RTCPeerConnection(videoConfiguration),
+    peerStream: undefined,
+    peerVideo: undefined,
+  };
+  addLocalStream(peers.value[user].pc);
+  onIceCandidates(peers.value[user].pc, user, conference.room, true);
+  onAddStream(peers.value[user], user);
+
+  desc
+    ? handleAnswer(desc, peers.value[user].pc, user, conference.room, true)
+    : createOffer(peers.value[user].pc, user, conference.room, true);
+};
+
+const invite = (user) => {
+  $socket.emit(WS_EVENTS.conferenceInvitation, {
+    room: store.state.room,
+    to: user,
+    from: username,
+  });
+};
+
+onMounted(async () => {
+  const myVideo = document.getElementById("localVideo");
+  if (conference.admin) {
+    await getUserMedia();
+    $socket.emit(WS_EVENTS.joinConference, { ...store.state, to: username });
+  }
+  if (conference.offer) {
+    const {
+      offer: { from, desc },
+    } = conference;
+    init(from, desc);
+  }
+});
+
+onBeforeUnmount(() => {
+  Object.values(peers.value).forEach((peer) => peer.pc.close());
+  peers.value = {};
+  $socket.emit(WS_EVENTS.leaveConference, {
+    ...store.state,
+    from: username,
+    conferenceRoom: conference.room,
+  });
+});
+
+watch(conference, ({ user, answer, candidate, userLeft, offer }, oldVal) => {
+  if (userLeft && userLeft !== oldVal.userLeft) {
+    peersLength.value--;
+    peers.value[userLeft].pc.close();
+    delete peers.value[userLeft];
+  }
+  if (user && user !== oldVal.user) {
+    initWebRTC(user);
+    peersLength.value++;
+  }
+  if (answer && oldVal.answer !== answer) {
+    setRemoteDescription(answer.desc, peers.value[answer.from].pc);
+  }
+  if (candidate && oldVal.candidate !== candidate) {
+    addCandidate(peers.value[candidate.from].pc, candidate.candidate);
+  }
+  if (offer && offer !== oldVal.offer && oldVal.offer !== undefined) {
+    const { from, desc } = offer;
+    init(from, desc);
+  }
+});
 </script>
+
 <template>
   <div class="min-h-screen p-4">
     <div class="max-w-6xl mx-auto">
-      <div :class="`grid ${getGridColumns(participants.length)} gap-4 mb-4`">
+      <div
+        :class="`grid ${getGridColumns(Object.keys(peers).length + 1)} gap-4 mb-4`"
+      >
         <div
-          v-for="participant in participants"
-          :key="participant.id"
-          :class="`aspect-video bg-muted rounded-lg shadow-md overflow-hidden relative ${participant.isLocal ? 'ring-2 ring-primary/50' : ''}`"
+          v-for="(peer, key) in peers"
+          :key="key"
+          class="aspect-video bg-muted rounded-lg shadow-md overflow-hidden relative"
         >
-          <div
-            v-if="participant.isVideoOff"
-            class="absolute inset-0 flex items-center justify-center bg-muted/95"
-          >
-            <span class="text-2xl font-bold text-muted-foreground">{{
-              participant.name[0]
-            }}</span>
-          </div>
-          <img
-            v-else
-            :src="`/placeholder.svg?height=180&width=320&text=${participant.name}`"
-            :alt="participant.name"
+          <video
+            :id="key"
             class="w-full h-full object-cover"
-          />
-          <div
-            class="absolute bottom-2 left-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded"
-          >
-            {{ participant.name }}
-            <MicOff
-              v-if="participant.isMuted"
-              class="inline-block ml-1 w-3 h-3"
-            />
-          </div>
-          <div
-            v-if="participant.isLocal"
-            class="absolute top-2 left-2 bg-primary/90 text-primary-foreground text-xs px-2 py-1 rounded"
-          >
-            You
-          </div>
+            autoplay
+            playsinline
+          ></video>
+        </div>
+        <div
+          class="aspect-video bg-muted rounded-lg shadow-md overflow-hidden relative ring-2 ring-primary/50"
+        >
+          <video
+            id="localVideo"
+            class="w-full h-full object-cover"
+            autoplay
+            playsinline
+            muted
+          ></video>
         </div>
       </div>
       <div
@@ -125,7 +177,7 @@ const getGridColumns = (count) => {
         <Button
           variant="outline"
           @click="addParticipant"
-          :disabled="participants.length >= 10"
+          :disabled="Object.keys(peers).length >= 10"
         >
           <UserPlus class="h-4 w-4 mr-2" />
           Add Participant
@@ -133,7 +185,7 @@ const getGridColumns = (count) => {
         <Button
           variant="outline"
           @click="removeParticipant"
-          :disabled="participants.length <= 1"
+          :disabled="Object.keys(peers).length <= 1"
         >
           <UserMinus class="h-4 w-4 mr-2" />
           Remove Participant

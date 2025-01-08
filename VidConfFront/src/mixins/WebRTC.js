@@ -1,6 +1,6 @@
-import { log } from "../utils/logging";
-import { servers } from "../utils/ICEServers";
-import { WS_EVENTS, DESCRIPTION_TYPE } from "../utils/config";
+import { log } from "@/utils/logging";
+import { servers } from "@/utils/ICEServers";
+import { WS_EVENTS, DESCRIPTION_TYPE } from "@/config";
 
 export const videoConfiguration = {
   data() {
