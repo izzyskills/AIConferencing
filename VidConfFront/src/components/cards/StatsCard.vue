@@ -19,11 +19,14 @@ const items = ref([
     <!-- End background gradient (light version only) -->
     <div class="max-w-7xl relative px-6 mx-auto">
       <div class="pb-20">
-        <div class="grid grid-cols-4 text-center gap-6" data-aos-id-stats="">
+        <div
+          class="grid md:grid-cols-4 grid-cols-2 text-center gap-6"
+          data-aos-id-stats=""
+        >
           <div
             v-for="(item, index) in items"
             :key="index"
-            class="shadow-2xl bg-white px-1 py-8 aos-init aos-animate"
+            class="shadow-2xl bg-card text-card-foreground px-1 py-8 aos-init aos-animate"
             data-aos="fade-down"
             data-aos-anchor="[data-aos-id-stats]"
             :data-aos-delay="item.delay"

@@ -109,70 +109,102 @@ const category = ref("1");
 </script>
 
 <template>
-  <div x-data="{ category: '1' }">
-    <div class="grid grid-cols-3 gap-6">
-      <!-- Category buttons -->
-      <div class="flex flex-col flex-wrap col-span-1 pr-16 mx-0 m-[-1]">
-        <button
-          v-for="cat in categories"
-          :key="cat.id"
-          :class="category === cat.id ? 'bg-teal-500' : 'bg-white'"
-          @click="category = cat.id"
-          class="flex items-center justify-center w-full px-3 py-2 m-1 duration-150 ease-in-out transition rounded shadow-sm"
-        >
-          <svg
-            class="flex-shrink-0 w-4 h-4 mr-2"
-            viewBox="0 0 16 16"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              :class="category === cat.id ? 'text-teal-200' : 'text-teal-500'"
-              class="fill-current"
-              :d="cat.iconPath"
-            ></path>
-          </svg>
-          <span :class="category === cat.id ? 'text-white' : 'text-gray-600'">
-            {{ cat.label }}
-          </span>
-        </button>
-      </div>
-      <!-- Videos -->
-      <div class="col-span-2 mx-auto max-w-4xl">
-        <div class="grid grid-cols-2 gap-6">
-          <div
-            v-for="video in videos"
-            :key="video.title"
-            v-show="video.categories.includes(category)"
-          >
-            <div class="relative">
-              <img
-                :src="video.src"
-                :alt="video.alt"
-                class="w-full"
-                height="264"
-                width="352"
-              />
-              <div class="absolute inset-0 flex flex-col">
-                <div class="flex flex-grow items-center justify-center">
-                  <a class="duration-150 ease-in-out transition" href="#0">
-                    <img
-                      alt="Play icon"
-                      height="72"
-                      src="./images/play-button.svg"
-                      width="72"
-                    />
-                  </a>
-                </div>
-                <div
-                  class="flex items-center justify-between w-full px-6 py-3 bg-white opacity-90 bottom-0"
+  <section class="dark:border-border border-transparent relative border-t">
+    <!-- Background gradient -->
+    <div
+      aria-hidden="true"
+      class="pointer-events-none dark:from-neutral-800 dark:to-neutral-900 bg-gradient-to-b dark:opacity-25 from-gray-100 to-transparent absolute to-white inset-0 h-128"
+    ></div>
+    <!-- End background gradient -->
+    <div class="max-w-7xl relative md:px-6 mx-auto px-4">
+      <div class="md:py-20 py-12">
+        <!-- Section header -->
+        <div class="text-center max-w-4xl md:pb-16 mx-auto pb-12">
+          <h2 class="font-red-hat-display mb-4 text-4xl">
+            Turn your ideas into reality in seconds
+          </h2>
+          <p class="text-gray-600 dark:text-stone-400 text-xl">
+            Duis aute irure dolor in reprehenderit in voluptate velit esse
+            cillum dolore eu fugiat nulla pariatur excepteur sint occaecat
+            cupidatat.
+          </p>
+        </div>
+        <div x-data="{ category: '1' }">
+          <div class="grid lg:grid-cols-3 lg:gap-6 gap-12">
+            <!-- Category buttons -->
+            <div
+              class="flex lg:flex-col lg:mx-0 lg:justify-start lg:col-span-1 justify-center -m-1 flex-wrap"
+            >
+              <button
+                v-for="cat in categories"
+                :key="cat.id"
+                :class="category === cat.id ? 'bg-teal-500' : 'bg-white'"
+                @click="category = cat.id"
+                class="flex items-center justify-center lg:w-full px-3 py-2 m-1 duration-150 ease-in-out transition rounded shadow-sm"
+              >
+                <svg
+                  class="flex-shrink-0 w-4 h-4 mr-2"
+                  viewBox="0 0 16 16"
+                  xmlns="http://www.w3.org/2000/svg"
                 >
-                  <a class="text-gray-600" href="#0">
-                    {{ video.title }}
-                  </a>
-                  <div
-                    class="inline-flex px-3 py-1 text-white bg-gray-900 bg-opacity-50 rounded-full"
-                  >
-                    {{ video.duration }}
+                  <path
+                    :class="
+                      category === cat.id ? 'text-teal-200' : 'text-teal-500'
+                    "
+                    class="fill-current"
+                    :d="cat.iconPath"
+                  ></path>
+                </svg>
+                <span
+                  :class="category === cat.id ? 'text-white' : 'text-gray-600'"
+                >
+                  {{ cat.label }}
+                </span>
+              </button>
+            </div>
+            <!-- Videos -->
+            <div class="col-span-2 mx-auto max-w-4xl">
+              <div class="grid grid-cols-2 gap-6">
+                <div
+                  v-for="video in videos"
+                  :key="video.title"
+                  v-show="video.categories.includes(category)"
+                >
+                  <div class="relative">
+                    <img
+                      :src="video.src"
+                      :alt="video.alt"
+                      class="w-full"
+                      height="264"
+                      width="352"
+                    />
+                    <div class="absolute inset-0 flex flex-col">
+                      <div class="flex flex-grow items-center justify-center">
+                        <a
+                          class="duration-150 ease-in-out transition"
+                          href="#0"
+                        >
+                          <img
+                            alt="Play icon"
+                            height="72"
+                            src="./images/play-button.svg"
+                            width="72"
+                          />
+                        </a>
+                      </div>
+                      <div
+                        class="flex items-center justify-between w-full px-6 py-3 bg-white opacity-90 bottom-0"
+                      >
+                        <a class="text-gray-600" href="#0">
+                          {{ video.title }}
+                        </a>
+                        <div
+                          class="inline-flex px-3 py-1 text-white bg-gray-900 bg-opacity-50 rounded-full"
+                        >
+                          {{ video.duration }}
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -181,7 +213,7 @@ const category = ref("1");
         </div>
       </div>
     </div>
-  </div>
+  </section>
 </template>
 
 <style scoped>
