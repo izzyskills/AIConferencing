@@ -5,6 +5,7 @@ import LoginView from "@/views/LoginView.vue";
 import AboutView from "@/views/AboutView.vue";
 import DashboardView from "@/views/DashboardView.vue";
 import RequireAuth from "@/views/RequireAuth.vue";
+import LandingView from "@/views/LandingView.vue";
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -12,7 +13,7 @@ const router = createRouter({
     {
       path: "/",
       name: "home",
-      component: HomeView,
+      component: LandingView,
     },
     {
       path: "/signup",

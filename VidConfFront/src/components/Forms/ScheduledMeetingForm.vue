@@ -54,8 +54,8 @@ const { createRoom } = useCreateRoom();
 const onSubmit = handleSubmit(async (values) => {
   const created_by = getUser.value.user_uid;
   values["created_by"] = created_by;
-  participant.value.push(getUser.value.email);
   values["members"] = participants.value;
+  values["members"].push(getUser.value.email);
   if (new Date(values.opens_at) <= new Date()) {
     values["in_session"] = true;
   }
