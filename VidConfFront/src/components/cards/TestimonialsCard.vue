@@ -2,7 +2,7 @@
 const testimonials = [
   {
     id: 1,
-    imgSrc: "./images/testimonial-01.jpg",
+    imgSrc: "/images/testimonial-01.jpg",
     alt: "Testimonial 01",
     quote:
       "This is a great app and the value is amazing. Since I purchased it I have been using it everyday! Highly recommend it.",
@@ -11,7 +11,7 @@ const testimonials = [
   },
   {
     id: 2,
-    imgSrc: "./images/testimonial-02.jpg",
+    imgSrc: "/images/testimonial-02.jpg",
     alt: "Testimonial 02",
     quote:
       "This is a great app and the value is amazing. Since I purchased it I have been using it everyday! Highly recommend it.",
@@ -20,7 +20,7 @@ const testimonials = [
   },
   {
     id: 3,
-    imgSrc: "./images/testimonial-03.jpg",
+    imgSrc: "/images/testimonial-03.jpg",
     alt: "Testimonial 03",
     quote:
       "This is a great app and the value is amazing. Since I purchased it I have been using it everyday! Highly recommend it.",
@@ -29,7 +29,7 @@ const testimonials = [
   },
   {
     id: 4,
-    imgSrc: "./images/testimonial-04.jpg",
+    imgSrc: "/images/testimonial-04.jpg",
     alt: "Testimonial 04",
     quote:
       "This is a great app and the value is amazing. Since I purchased it I have been using it everyday! Highly recommend it.",

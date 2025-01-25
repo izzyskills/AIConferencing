@@ -1,5 +1,6 @@
 <script setup>
 import { ref } from "vue";
+import { Button } from "../ui/button";
 
 const categories = ref([
   {
@@ -35,14 +36,14 @@ const categories = ref([
 const videos = ref([
   {
     categories: ["1"],
-    src: "./images/video-thumb.jpg",
+    src: "/images/video-thumb.jpg",
     alt: "Video thumbnail 01",
     title: "Using index pages",
     duration: "2 Min",
   },
   {
     categories: ["1", "2"],
-    src: "./images/video-thumb.jpg",
+    src: "/images/video-thumb.jpg",
     alt: "Video thumbnail 01",
     title: "Working with content",
     duration: "4 Min",
@@ -56,49 +57,49 @@ const videos = ref([
   },
   {
     categories: ["1", "4"],
-    src: "./images/video-thumb.jpg",
+    src: "/images/video-thumb.jpg",
     alt: "Video thumbnail 01",
     title: "Intro to the style model",
     duration: "9 Min",
   },
   {
     categories: ["2", "5"],
-    src: "./images/video-thumb.jpg",
+    src: "/images/video-thumb.jpg",
     alt: "Video thumbnail 01",
     title: "Exploring collections",
     duration: "12 Min",
   },
   {
     categories: ["2", "3"],
-    src: "./images/video-thumb.jpg",
+    src: "/images/video-thumb.jpg",
     alt: "Video thumbnail 01",
     title: "Understand hierarchy",
     duration: "3 Min",
   },
   {
     categories: ["2", "4"],
-    src: "./images/video-thumb.jpg",
+    src: "/images/video-thumb.jpg",
     alt: "Video thumbnail 01",
     title: "Customisations",
     duration: "11 Min",
   },
   {
     categories: ["3", "5"],
-    src: "./images/video-thumb.jpg",
+    src: "/images/video-thumb.jpg",
     alt: "Video thumbnail 01",
     title: "Image galleries",
     duration: "6 Min",
   },
   {
     categories: ["5"],
-    src: "./images/video-thumb.jpg",
+    src: "/images/video-thumb.jpg",
     alt: "Video thumbnail 01",
     title: "Sorting images",
     duration: "4 Min",
   },
   {
     categories: ["5"],
-    src: "./images/video-thumb.jpg",
+    src: "/images/video-thumb.jpg",
     alt: "Video thumbnail 01",
     title: "Filters",
     duration: "9 Min",
@@ -109,6 +110,7 @@ const category = ref("1");
 </script>
 
 <template>
+  <img src="" alt="" />
   <section class="dark:border-border border-transparent relative border-t">
     <!-- Background gradient -->
     <div
@@ -135,7 +137,7 @@ const category = ref("1");
             <div
               class="flex lg:flex-col lg:mx-0 lg:justify-start lg:col-span-1 justify-center -m-1 flex-wrap"
             >
-              <button
+              <Button
                 v-for="cat in categories"
                 :key="cat.id"
                 :class="category === cat.id ? 'bg-teal-500' : 'bg-white'"
@@ -160,7 +162,7 @@ const category = ref("1");
                 >
                   {{ cat.label }}
                 </span>
-              </button>
+              </Button>
             </div>
             <!-- Videos -->
             <div class="col-span-2 mx-auto max-w-4xl">
@@ -187,7 +189,7 @@ const category = ref("1");
                           <img
                             alt="Play icon"
                             height="72"
-                            src="./images/play-button.svg"
+                            src="/images/play-button.svg"
                             width="72"
                           />
                         </a>

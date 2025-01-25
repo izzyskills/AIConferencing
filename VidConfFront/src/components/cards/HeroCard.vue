@@ -163,7 +163,7 @@ const modalExpanded = ref(false);
                   alt="Features illustration"
                   class="absolute"
                   height="624"
-                  src="./images/mockup-image-01.jpg"
+                  src="/images/mockup-image-01.jpg"
                   style="max-width: 84.33%"
                   width="290"
                 />
@@ -173,7 +173,7 @@ const modalExpanded = ref(false);
                   aria-hidden="true"
                   class="pointer-events-none max-w-none max-w-full relative mr-0 mx-auto h-auto"
                   height="674"
-                  src="./images/iphone-mockup.png"
+                  src="/images/iphone-mockup.png"
                   width="344"
                 />
                 <!-- Play button -->
@@ -186,7 +186,7 @@ const modalExpanded = ref(false);
                   <img
                     alt="Play"
                     height="96"
-                    src="./images/play-button.svg"
+                    src="/images/play-button.svg"
                     width="96"
                   />
                 </a>
