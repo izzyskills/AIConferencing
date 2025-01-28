@@ -21,6 +21,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { useForm } from "vee-validate";
 import { toTypedSchema } from "@vee-validate/zod";
+import { z } from "zod";
 import { meeting_schema } from "./schemas";
 import { useAuth } from "@/composables/useauth";
 import { useCreateRoom } from "@/adapters/requests";
@@ -39,28 +40,46 @@ const { handleSubmit } = useForm({
   },
 });
 const isChecked = ref(false);
-const participants = ref([]);
+const participants = ref([getUser.value.email]);
 const current_participant = ref("");
+const participantError = ref("");
+
+const participantSchema = z.string().email("Invalid email address");
+
 const addParticipant = () => {
-  participants.value.push(current_participant.value);
+  const email = current_participant.value;
+  const validation = participantSchema.safeParse(email);
+
+  if (!validation.success) {
+    participantError.value = validation.error.errors[0].message;
+    return;
+  }
+
+  if (participants.value.includes(email) || email === getUser.value.email) {
+    participantError.value = "Email is already added or is your own email";
+    return;
+  }
+
+  participants.value.push(email);
   current_participant.value = "";
+  participantError.value = "";
 };
+
 const removeParticipant = (participant) => {
-  participants.value = participants.value.filter(
-    (p) => p.email !== participant.email,
-  );
+  participants.value = participants.value.filter((p) => p !== participant);
 };
+
 const { createRoom } = useCreateRoom();
 const onSubmit = handleSubmit(async (values) => {
   const created_by = getUser.value.user_uid;
   values["created_by"] = created_by;
   values["members"] = participants.value;
-  values["members"].push(getUser.value.email);
+  values["members"].push(getUser.value?.email);
   if (new Date(values.opens_at) <= new Date()) {
     values["in_session"] = true;
   }
-  createRoom.mutateAsync(values);
   console.log(values);
+  createRoom.mutateAsync(values);
 });
 </script>
 
@@ -72,7 +91,7 @@ const onSubmit = handleSubmit(async (values) => {
         <CardDescription>note meetings only last for an hour</CardDescription>
       </CardHeader>
       <CardContent class="grid gap-4">
-        <form @submit="onSubmit" class="grid gap-4">
+        <form @submit.prevent="onSubmit" class="grid gap-4">
           <div :class="isChecked ? ` grid md:grid-cols-2 gap-2` : ``">
             <div class="gird gap-4">
               <FormField v-slot="{ componentField }" type="text" name="name">
@@ -148,21 +167,28 @@ const onSubmit = handleSubmit(async (values) => {
                   </h6>
                 </div>
                 <div class="grid gap-6">
-                  <AddParticipant :email="getUser.email" :role="`Admin`" />
                   <AddParticipant
                     v-for="(participant, index) in participants"
                     :key="index"
                     :email="participant"
                     :removeParticipant="removeParticipant"
+                    :role="index === 0 ? 'Host' : 'Participant'"
                   />
                 </div>
               </div>
               <Separator class="my-4" />
               <div class="flex space-x-2">
-                <Input v-model="current_participant" type="email" />
+                <div class="flex flex-col">
+                  <Input v-model="current_participant" type="email" />
+                  <span
+                    v-if="participantError"
+                    class="text-destructive text-sm mt-2"
+                    >{{ participantError }}</span
+                  >
+                </div>
                 <Button
                   variant="secondary"
-                  @click="addParticipant"
+                  @click.prevent="addParticipant"
                   class="shrink-0"
                 >
                   Add Participant

@@ -10,7 +10,7 @@ import { useAxiosPrivate } from "@/composables/useAxiosPrivate";
 function useLogin() {
   const router = useRouter();
   const route = useRoute();
-  const from = route.query.from || "/dashboard";
+  const from = route.query.from || "/";
   const { setAuth } = useAuth();
   const error = ref(null);
   const login = useMutation({
@@ -72,7 +72,7 @@ function useSignup() {
         error.value = "Invalid response from server";
         return;
       }
-      queryClient.invalidateQueries("userdata");
+      queryClient.invalidateQueries();
       // Note: You'll need to implement a toast notification system for Vue
       // toast.success("You have been successfully registered.");
       router.push("/login");
@@ -108,6 +108,7 @@ function useLogout() {
       setAuth({});
       queryClient.invalidateQueries();
       router.push("/", { replace: true });
+      localStorage.removeItem("authState");
     },
     onError: (err) => {
       console.error("Lougout error: ", err);

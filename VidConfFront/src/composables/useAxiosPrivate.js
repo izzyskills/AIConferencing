@@ -1,4 +1,5 @@
 import { onMounted, onUnmounted } from "vue";
+import { useRouter, useRoute } from "vue-router";
 import { useRefreshToken } from "./useRefreshToken";
 import { useAuth } from "./useauth";
 import { apiClientPrivate } from "@/adapters/api";
@@ -6,6 +7,8 @@ import { apiClientPrivate } from "@/adapters/api";
 export function useAxiosPrivate() {
   const refresh = useRefreshToken();
   const { setAuth, authstate } = useAuth();
+  const router = useRouter();
+  const route = useRoute();
 
   let requestIntercept = null;
   let responseIntercept = null;
@@ -25,12 +28,16 @@ export function useAxiosPrivate() {
       (response) => response,
       async (error) => {
         const prevRequest = error?.config;
-        if (error?.response?.status === 403 && !prevRequest?.sent) {
+        if (error?.response?.status === 401 && !prevRequest?.sent) {
           prevRequest.sent = true;
           try {
             const newAccessToken = await refresh();
             if (!newAccessToken) {
               setAuth({});
+              router.push({
+                name: "login",
+                query: { redirect: route.fullPath },
+              });
               return Promise.reject(error);
             }
             prevRequest.headers["Authorization"] = `Bearer ${newAccessToken}`;
