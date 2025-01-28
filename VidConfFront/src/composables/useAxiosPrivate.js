@@ -34,10 +34,7 @@ export function useAxiosPrivate() {
             const newAccessToken = await refresh();
             if (!newAccessToken) {
               setAuth({});
-              router.push({
-                name: "login",
-                query: { redirect: route.fullPath },
-              });
+              router.push({ name: "login", query: { from: route.fullPath } });
               return Promise.reject(error);
             }
             prevRequest.headers["Authorization"] = `Bearer ${newAccessToken}`;
@@ -45,6 +42,7 @@ export function useAxiosPrivate() {
           } catch (refreshError) {
             console.error("Error refreshing access token:", refreshError);
             setAuth({});
+            router.push({ name: "login", query: { from: route.fullPath } });
             return Promise.reject(error);
           }
         }

@@ -6,12 +6,15 @@ import { jwtDecode } from "jwt-decode";
 import axios from "axios";
 import { ref } from "vue";
 import { useAxiosPrivate } from "@/composables/useAxiosPrivate";
+import { handleErrors } from "@/lib/utils";
+import { useToast } from "@/components/ui/toast";
 
 function useLogin() {
   const router = useRouter();
   const route = useRoute();
   const from = route.query.from || "/";
   const { setAuth } = useAuth();
+  const { toast } = useToast();
   const error = ref(null);
   const login = useMutation({
     mutationFn: (formData) => {
@@ -28,9 +31,11 @@ function useLogin() {
       const user = decodedToken.user;
       setAuth({ user, token });
       queryClient.invalidateQueries(["userdata", user.uid]);
+      toast({ description: "Login Successful" });
       router.push(from, { replace: true });
     },
     onError: (err) => {
+      handleErrors(err, error, "Signing In");
       if (axios.isAxiosError(err) && err.response) {
         const { data } = err.response;
         if (data && data.error_code === "invalid_email_or_password") {
@@ -43,7 +48,6 @@ function useLogin() {
       } else {
         error.value = "An unexpected error occurred";
       }
-      console.error("Login error:", err);
     },
   });
 
@@ -78,9 +82,7 @@ function useSignup() {
       router.push("/login");
     },
     onError: (err) => {
-      console.error("Signup error:", err);
-      error.value =
-        err.response?.data?.error_code || "An error occurred during signup";
+      handleErrors(err, error, "Signing  Up");
     },
   });
 
@@ -111,9 +113,7 @@ function useLogout() {
       localStorage.removeItem("authState");
     },
     onError: (err) => {
-      console.error("Lougout error: ", err);
-      error.value =
-        err.response?.data?.error_code || "an arror occured during logging out";
+      handleErrors(err, error, "Logging Out");
     },
   });
   return { error, logout };
@@ -136,6 +136,9 @@ function useCreateRoom() {
       } catch (error) {
         console.error(error);
       }
+    },
+    onError: (err) => {
+      handleErrors(err, error, "Creating Meeting");
     },
   });
   return { error, createRoom };

@@ -28,7 +28,10 @@ const handleLogout = async () => {
         </Button>
       </SheetTrigger>
       <SheetContent side="left">
-        <RouterLink to="#" class="mr-6 hidden lg:flex">
+        <RouterLink
+          :to="isLoggedIn ? `/dashboard` : `/`"
+          class="mr-6 hidden lg:flex"
+        >
           <MountainIcon class="h-6 w-6" />
           <span class="sr-only">Acme Inc</span>
         </RouterLink>
@@ -50,7 +53,7 @@ const handleLogout = async () => {
             <RouterLink class="text-left" to="signup"> Register </RouterLink>
           </Button>
           <RouterLink
-            to="#"
+            to="/"
             class="flex w-full items-center py-2 text-lg font-semibold"
           >
             Home
@@ -65,7 +68,10 @@ const handleLogout = async () => {
         <DarkMode />
       </SheetContent>
     </Sheet>
-    <RouterLink to="#" class="mr-6 hidden lg:flex gap-2">
+    <RouterLink
+      :to="isLoggedIn ? `/dashboard` : `/`"
+      class="mr-6 hidden lg:flex gap-2"
+    >
       <MountainIcon class="h-6 w-6" />
       <span class="">Acme Inc</span>
     </RouterLink>
@@ -80,7 +86,7 @@ const handleLogout = async () => {
     </nav>
     <nav v-else class="ml-auto hidden lg:flex gap-6">
       <RouterLink
-        to="#"
+        to="/"
         class="group inline-flex h-9 w-max items-center justify-center rounded-md px-4 py-2 text-sm font-medium transition-colors hover:bg-popover hover:text-popover-foreground focus:bg-popover focus:text-popover-foreground data-[active]:bg-accent-foreground/50 data-[state=open]:bg-accent-foreground/50"
       >
         Home
