@@ -1,11 +1,11 @@
 import { createRouter, createWebHistory } from "vue-router";
-import HomeView from "../views/HomeView.vue";
 import SignupView from "../views/SignupView.vue";
 import LoginView from "@/views/LoginView.vue";
 import AboutView from "@/views/AboutView.vue";
 import DashboardView from "@/views/DashboardView.vue";
-import RequireAuth from "@/views/RequireAuth.vue";
 import LandingView from "@/views/LandingView.vue";
+import NotFound from "@/views/NotFound.vue";
+import { useAuth } from "@/composables/useauth";
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -36,8 +36,29 @@ const router = createRouter({
     {
       path: "/dashboard",
       component: DashboardView,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: "/:pathMatch(.*)*",
+      name: "not-found",
+      component: NotFound,
     },
   ],
+});
+
+router.beforeEach((to, from, next) => {
+  const { isLoggedIn } = useAuth();
+  if (
+    to.matched.some((record) => record.meta.requiresAuth) &&
+    !isLoggedIn.value
+  ) {
+    next({
+      name: "login",
+      query: { from: to.fullPath },
+    });
+  } else {
+    next();
+  }
 });
 
 export default router;

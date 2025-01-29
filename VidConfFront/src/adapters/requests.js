@@ -120,7 +120,6 @@ function useLogout() {
 }
 
 function useCreateRoom() {
-  const router = useRouter();
   const error = ref(null);
   const apiClientPrivate = useAxiosPrivate();
   const createRoom = useMutation({
