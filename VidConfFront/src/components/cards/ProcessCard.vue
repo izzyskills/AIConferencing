@@ -107,7 +107,7 @@ const items = [
               <!-- Image inside mockup size: 290x624px (or 580x1248px for Retina devices) -->
               <img
                 :alt="item.alt"
-                class="absolute"
+                class="absolute rounded-[40px]"
                 height="624"
                 :src="item.imgSrc"
                 style="max-width: 84.33%"

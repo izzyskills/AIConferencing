@@ -4,6 +4,7 @@ import Navbar from "./components/Navbar.vue";
 //TODO Ensure proper login and signup flow
 import { VueQueryDevtools } from "@tanstack/vue-query-devtools";
 import Aos from "aos";
+import "aos/dist/aos.css";
 import { Toaster } from "./components/ui/toast";
 Aos.init();
 </script>

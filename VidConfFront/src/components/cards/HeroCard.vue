@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script setup>
 import { ref } from "vue";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
@@ -161,7 +161,7 @@ const modalExpanded = ref(false);
                 <!-- Image inside mockup size: 290x624px (or 580x1248px for Retina devices) -->
                 <img
                   alt="Features illustration"
-                  class="absolute"
+                  class="absolute rounded-[40px]"
                   height="624"
                   src="/images/mockup-image-01.jpg"
                   style="max-width: 84.33%"
@@ -171,7 +171,7 @@ const modalExpanded = ref(false);
                 <img
                   alt="iPhone mockup"
                   aria-hidden="true"
-                  class="pointer-events-none max-w-none max-w-full relative mr-0 mx-auto h-auto"
+                  class="pointer-events-none max-w-none md:max-w-full relative mr-0 mx-auto h-auto"
                   height="674"
                   src="/images/iphone-mockup.png"
                   width="344"
