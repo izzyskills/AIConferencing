@@ -38,7 +38,7 @@ async def create_room(
             </p>
             <p>Click <a href="{link}">here</a> to join the room</p>
         </body>"""
-    send_email.delay(members_email, "Room Created", html_message)
+    # send_email.delay(members_email, "Room Created", html_message)
 
     return new_room
 

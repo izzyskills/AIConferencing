@@ -8,7 +8,7 @@ from .schemas import CreateRoomModel, RoomMemberModel
 
 class RoomService:
     async def create_room(self, room_data: CreateRoomModel, session: AsyncSession):
-        room_data_dict = room_data.model_dump()
+        room_data_dict = room_data.model_dump(exclude={"members"})
 
         # Get the user by UUID
         created_by_uuid = room_data_dict["created_by"]
@@ -19,6 +19,7 @@ class RoomService:
 
         creator_email = user.email
         new_room = Room(**room_data_dict)
+        session.add(new_room)
 
         # Convert member emails to RoomMemberModel objects
         member_emails = room_data_dict.get("members", [])
@@ -45,7 +46,6 @@ class RoomService:
                 )
             )
 
-        session.add(new_room)
         await session.commit()
         await session.refresh(new_room)
         return new_room

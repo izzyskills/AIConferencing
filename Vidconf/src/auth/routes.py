@@ -6,7 +6,8 @@ from fastapi.responses import JSONResponse
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.db.main import get_session
-from src.db.redis import add_jti_to_blocklist
+
+# from src.db.redis import add_jti_to_blocklist
 
 from .dependencies import (
     AccessTokenBearer,
@@ -194,14 +195,14 @@ async def get_new_access_token(request: Request, response: Response = None):
 async def revoke_token(
     request: Request, token_details: dict = Depends(AccessTokenBearer())
 ):
-    jti = token_details["jti"]
+    # jti = token_details["jti"]
 
-    await add_jti_to_blocklist(jti)
+    # await add_jti_to_blocklist(jti)
     refresh_token = request.cookies.get("refresh_token")
     if refresh_token:
         token_details = decode_token(refresh_token)
-        jti = token_details["jti"]
-        await add_jti_to_blocklist(jti)
+        # jti = token_details["jti"]
+        # await add_jti_to_blocklist(jti)
 
     return JSONResponse(
         content={"message": "Logged Out Successfully"}, status_code=status.HTTP_200_OK

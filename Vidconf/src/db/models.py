@@ -43,6 +43,7 @@ class Room(SQLModel, table=True):
     update_at: datetime = Field(sa_column=Column(pg.TIMESTAMP, default=datetime.now))
     created_by_user: User = Relationship(back_populates="rooms")
     members: List["RoomMember"] = Relationship(back_populates="room")
+    extracts: Optional["MeetingExtracts"] = Relationship(back_populates="room")
 
 
 class RoomMember(SQLModel, table=True):
@@ -58,3 +59,15 @@ class RoomMember(SQLModel, table=True):
     update_at: datetime = Field(sa_column=Column(pg.TIMESTAMP, default=datetime.now))
     room: Room = Relationship(back_populates="members")
     user: User = Relationship(back_populates="room_members")
+
+
+class MeetingExtracts(SQLModel, table=True):
+    id: uuid.UUID = Field(
+        sa_column=Column(pg.UUID, nullable=False, primary_key=True, default=uuid.uuid4)
+    )
+    room_id: uuid.UUID = Field(foreign_key="room.rid", primary_key=True)
+    transcript_link: str
+    summary_link: str
+    created_at: datetime = Field(sa_column=Column(pg.TIMESTAMP, default=datetime.now))
+    update_at: datetime = Field(sa_column=Column(pg.TIMESTAMP, default=datetime.now))
+    room: Room = Relationship(back_populates="extracts")
