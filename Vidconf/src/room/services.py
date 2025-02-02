@@ -1,4 +1,6 @@
+from datetime import datetime, timedelta
 import uuid
+from sqlalchemy.orm import joinedload
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.db.models import Room, RoomMember, User
@@ -58,6 +60,43 @@ class RoomService:
         room = result.first()
 
         return room
+
+    async def get_all_user_rooms(self, uid: uuid.UUID, session: AsyncSession):
+        statement = (
+            select(Room)
+            .options(joinedload(Room.members))
+            .where(
+                (Room.created_by == uid)
+                | (
+                    Room.rid.in_(
+                        select(RoomMember.room_id).where(RoomMember.user_id == uid)
+                    )
+                )
+            )
+        )
+        result = await session.exec(statement)
+        rooms = result.unique().all()
+        return rooms
+
+    async def get_all_active_user_rooms(self, uid: uuid.UUID, session: AsyncSession):
+        now = datetime.utcnow()
+        past_time = now - timedelta(minutes=59)
+
+        statement = (
+            select(Room)
+            .options(joinedload(Room.members))
+            .where(
+                (Room.created_by == uid)
+                | (
+                    Room.rid.in_(
+                        select(RoomMember.room_id).where(RoomMember.user_id == uid)
+                    )
+                ),
+                Room.opens_at >= past_time,
+            )
+        )
+        result = await session.exec(statement)
+        return result.unique().all()
 
     async def join_room(self, room_member_data: RoomMemberModel, session: AsyncSession):
         room_member_data_dict = room_member_data.model_dump()

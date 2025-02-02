@@ -50,9 +50,29 @@ async def join_room(
     token: dict = Depends(AccessTokenBearer()),
     session: AsyncSession = Depends(get_session),
 ):
-    if room_member_data.user_id != token["user"]["uid"]:
+    if room_member_data.user_id != token["user"]["user_uid"]:
         raise InvalidCredentials
     if room_member_data.room_id != rid:
         raise InvalidCredentials
     room = await room_service.join_room(room_member_data, session)
     return room
+
+
+@room_router.get("/all")
+async def get_rooms(
+    token: dict = Depends(AccessTokenBearer()),
+    session: AsyncSession = Depends(get_session),
+):
+    user_id = token["user"]["user_uid"]
+    rooms = await room_service.get_all_user_rooms(user_id, session)
+    return rooms
+
+
+@room_router.get("/future")
+async def get_future_rooms(
+    token: dict = Depends(AccessTokenBearer()),
+    session: AsyncSession = Depends(get_session),
+):
+    user_id = token["user"]["user_uid"]
+    rooms = await room_service.get_all_active_user_rooms(user_id, session)
+    return rooms
