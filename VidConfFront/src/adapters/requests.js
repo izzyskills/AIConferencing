@@ -143,4 +143,24 @@ function useCreateRoom() {
   return { error, createRoom };
 }
 
-export { useSignup, useLogin, useLogout, useCreateRoom };
+function useGetRooms() {
+  const error = ref(null);
+  const apiClientPrivate = useAxiosPrivate();
+  const getRooms = useQuery({
+    queryKey: ["rooms"],
+    queryFn: async () => {
+      try {
+        const res = await apiClientPrivate.get("/room/all");
+        return res.data;
+      } catch (error) {
+        console.error(error);
+      }
+    },
+    onError: (err) => {
+      handleErrors(err, error, "Fetching Rooms");
+    },
+  });
+  return { error, getRooms };
+}
+
+export { useSignup, useLogin, useLogout, useCreateRoom, useGetRooms };
