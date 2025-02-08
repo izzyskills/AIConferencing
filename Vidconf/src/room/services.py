@@ -104,29 +104,39 @@ class RoomService:
         user = (await session.exec(user)).first()
         if user is None:
             raise ValueError("User not found")
-        room = select(Room).where(Room.rid == room_member_data_dict["room_id"])
+
+        room = (
+            select(Room)
+            .where(Room.rid == room_member_data_dict["room_id"])
+            .options(selectinload(Room.members))
+        )
         room = (await session.exec(room)).first()
         if room is None:
             raise ValueError("Room not found")
         if len(room.members) >= 10:
             raise ValueError("Room is full")
-        if not room.public:
-            raise ValueError("Room is private")
 
-        room_member = select(RoomMember).where(
-            RoomMember.room_id == room_member_data_dict["room_id"],
-            RoomMember.user_id == room_member_data_dict["user_id"],
+        user_id = room_member_data_dict["user_id"]
+        room_member = next(
+            (member for member in room.members if member.user_id == user_id), None
         )
-        room_member = (await session.exec(room_member)).first()
-        if room_member is not None:
-            raise ValueError("User already in room")
-        new_room_member = RoomMember(**room_member_data_dict)
 
-        session.add(new_room_member)
+        if not room.public:
+            if room_member is None:
+                raise ValueError("Room is private and user is not a member")
+            room_member.joint = True
+            room_member.joined_at = datetime.now()
+        else:
+            if room_member is not None:
+                raise ValueError("User already in room")
+            new_room_member = RoomMember(
+                **room_member_data_dict, joint=True, joined_at=datetime.now()
+            )
+            session.add(new_room_member)
 
         await session.commit()
 
-        return new_room_member
+        return room_member if room_member else new_room_member
 
     async def update_room(self, room: Room, room_data: dict, session: AsyncSession):
         for k, v in room_data.items():

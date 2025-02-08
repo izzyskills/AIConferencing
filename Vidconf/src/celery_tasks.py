@@ -1,5 +1,10 @@
+from datetime import datetime
 import logging
+
+from sqlmodel import update
 from celery import Celery
+from src.db.main import get_session
+from src.db.models import Room
 from src.mail import mail, create_message
 from asgiref.sync import async_to_sync
 
@@ -9,6 +14,7 @@ logger = logging.getLogger(__name__)
 
 c_app = Celery()
 c_app.config_from_object("src.config")
+session = get_session()
 
 
 @c_app.task(bind=True, max_retries=3)
@@ -38,4 +44,22 @@ def check_email_status(task_id):
     }
 
 
+# Celery task for room state updates
+# @c_app.task
+# def update_room_states():
+#     now = datetime.now()
+#     # Activate rooms
+#     session.execute(
+#         update(Room)
+#         .where(Room.opens_at <= now)
+#         .where(Room.closes_at > now)
+#         .values(current_state='active')
+#     )
+#
+#     # Close expired rooms
+#     session.execute(
+#         update(Room)
+#         .where(Room.closes_at <= now)
+#         .values(current_state='ended')
+#     )
 # Example usage
