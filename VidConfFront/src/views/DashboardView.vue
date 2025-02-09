@@ -109,7 +109,9 @@ const closeMeeting = (rid) => {
                 {{ meeting.attendees }} are present
               </span>
             </CardTitle>
-            <Button class="ml-auto">Join Now</Button>
+            <RouterLink :to="`/room/${meeting.rid}`">
+              <Button class="ml-auto">Join Now</Button>
+            </RouterLink>
           </CardHeader>
           <XCircle
             @click="closeMeeting(meeting.rid)"

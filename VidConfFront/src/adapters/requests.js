@@ -150,7 +150,7 @@ function useGetRooms() {
     queryKey: ["rooms"],
     queryFn: async () => {
       try {
-        const res = await apiClientPrivate.get("/room/all");
+        const res = await apiClientPrivate.get("/room/future");
         return res.data;
       } catch (error) {
         console.error(error);

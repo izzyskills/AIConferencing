@@ -6,6 +6,7 @@ import DashboardView from "@/views/DashboardView.vue";
 import LandingView from "@/views/LandingView.vue";
 import NotFound from "@/views/NotFound.vue";
 import { useAuth } from "@/composables/useauth";
+import Meeting from "@/components/Meeting.vue";
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -36,6 +37,12 @@ const router = createRouter({
     {
       path: "/dashboard",
       component: DashboardView,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: "/room/:roomId",
+      name: "room",
+      component: Meeting,
       meta: { requiresAuth: true },
     },
     {
