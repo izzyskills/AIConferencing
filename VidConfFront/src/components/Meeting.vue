@@ -1,200 +1,137 @@
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount, watch } from "vue";
-import {
-  Mic,
-  MicOff,
-  Video,
-  VideoOff,
-  PhoneOff,
-  UserPlus,
-  UserMinus,
-} from "lucide-vue-next";
+import { ref, computed, onMounted, onBeforeUnmount, nextTick } from "vue";
 import { Button } from "@/components/ui/button";
-import { WS_EVENTS } from "@/config";
-import { videoConfiguration } from "@/mixins/WebRTC";
-import { useWebRTC } from "@/composables/useWebRTC";
-import { useSocket } from "@/composables/useSocket";
-import { useRoom } from "@/composables/useRoom";
+import { Mic, MicOff, Video, VideoOff, PhoneOff } from "lucide-vue-next";
+import { useVideoConfiguration } from "@/composables/useVideoConfiguration";
+import { useAuth } from "@/composables/useauth";
+import { onBeforeRouteLeave, useRoute, useRouter } from "vue-router";
+import { usePostJoinRoom } from "@/adapters/requests";
 
-const props = defineProps({
-  conference: {
-    type: Object,
-    required: true,
-  },
-  users: {
-    type: Array,
-    default: () => [],
-  },
-});
+// Expect a roomId prop (you might also pass userId via auth)
+const route = useRoute();
+const router = useRouter();
+const roomId = route.params.roomId;
+// Get the current user from your auth composable
+const { error, joinRoom } = usePostJoinRoom();
+const redirectTimer = ref(null);
+const { getUser } = useAuth();
+const userId = getUser.value?.user_uid; // adjust as necessary
 
-// Store setup
-const { room, username } = useRoom();
+// Reference to the local video element
+const myVideo = ref(null);
 
-// Socket setup
-const { socket } = useSocket();
+// Use the video configuration composable with the room and user IDs
+const {
+  localStream,
+  remoteStreams,
+  initializeMedia,
+  setupWebSocket,
+  toggleAudio,
+  toggleVideo,
+  cleanup,
+} = useVideoConfiguration(roomId, userId);
 
-// Local state
+// Local UI state for toggles
 const localMuted = ref(false);
 const localVideoOff = ref(false);
-const peers = ref({});
-const peersLength = ref(0);
 
-// WebRTC setup
-const {
-  myVideo,
-  getUserMedia,
-  addLocalStream,
-  onIceCandidates,
-  onAddStream,
-  handleAnswer,
-  createOffer,
-  setRemoteDescription,
-  addCandidate,
-  toggleVideo: toggleVideoStream,
-  toggleAudio: toggleAudioStream,
-} = useWebRTC(username.value);
+// Compute the participant count (local + remote)
+const participantCount = computed(
+  () => Object.keys(remoteStreams).length + (localStream.value ? 1 : 0),
+);
 
-// Computed
-const gridColumns = computed(() => {
-  const count = peersLength.value;
+// Compute a grid class for displaying video elements
+const gridClass = computed(() => {
+  const count = participantCount.value;
   if (count <= 2) return "grid-cols-1 sm:grid-cols-2";
   if (count <= 4) return "grid-cols-2 sm:grid-cols-2";
   return "grid-cols-3 sm:grid-cols-3";
 });
 
-// Methods
-const toggleMute = () => {
-  localMuted.value = !localMuted.value;
-  toggleAudioStream();
-};
+// Method to handle leaving the meeting
+function handleLeave() {
+  // For example, navigate away or use your router to push a new route
+  cleanup();
+  if (userId) {
+    router.push("/dashboard");
+  } else {
+    router.push("/");
+  }
+}
 
-const toggleVideo = () => {
-  localVideoOff.value = !localVideoOff.value;
-  toggleVideoStream();
-};
-
-const initWebRTC = (user, desc) => {
-  peers.value[user] = {
-    username: user,
-    pc: new RTCPeerConnection(videoConfiguration),
-    peerStream: undefined,
-    peerVideo: undefined,
-  };
-
-  addLocalStream(peers.value[user].pc);
-  onIceCandidates(peers.value[user].pc, user, props.conference.room, true);
-  onAddStream(peers.value[user], user);
-
-  desc
-    ? handleAnswer(
-        desc,
-        peers.value[user].pc,
-        user,
-        props.conference.room,
-        true,
-      )
-    : createOffer(peers.value[user].pc, user, props.conference.room, true);
-};
-
-const invite = (user) => {
-  socket.emit(WS_EVENTS.conferenceInvitation, {
-    room: room.value,
-    to: user,
-    from: username.value,
-  });
-};
-
-// Lifecycle hooks
 onMounted(async () => {
-  if (props.conference.admin) {
-    await getUserMedia();
-    socket.emit(WS_EVENTS.joinConference, {
-      room: room.value,
-      username: username.value,
-      to: username.value,
+  try {
+    // Attempt to join room first
+    await joinRoom.mutateAsync({
+      rid: roomId,
+      formData: { room_id: roomId, user_id: userId },
     });
-  }
 
-  if (props.conference.offer) {
-    const {
-      offer: { from, desc },
-    } = props.conference;
-    initWebRTC(from, desc);
+    // Only initialize if join was successful
+    await nextTick();
+    if (myVideo.value) {
+      await initializeMedia(myVideo.value);
+    }
+    setupWebSocket();
+  } catch (err) {
+    // Cleanup any partial initialization
+    cleanup();
+
+    // Set redirect timer
+    redirectTimer.value = setTimeout(() => {
+      router.push("/dashboard");
+    }, 5000);
   }
 });
 
+onBeforeRouteLeave((to, from, next) => {
+  cleanup();
+  next();
+});
 onBeforeUnmount(() => {
-  Object.values(peers.value).forEach((peer) => peer.pc.close());
-  peers.value = {};
-  socket.emit(WS_EVENTS.leaveConference, {
-    room: room.value,
-    username: username.value,
-    from: username.value,
-    conferenceRoom: props.conference.room,
-  });
+  // Clean up the WebSocket and peer connections
+  cleanup();
 });
-
-// Watch
-watch(
-  () => props.conference,
-  (newVal, oldVal) => {
-    const { user, answer, candidate, userLeft, offer } = newVal;
-
-    if (userLeft && userLeft !== oldVal?.userLeft) {
-      peersLength.value--;
-      peers.value[userLeft].pc.close();
-      delete peers.value[userLeft];
-    }
-
-    if (user && user !== oldVal?.user) {
-      initWebRTC(user);
-      peersLength.value++;
-    }
-
-    if (answer && oldVal?.answer !== answer) {
-      setRemoteDescription(answer.desc, peers.value[answer.from].pc);
-    }
-
-    if (candidate && oldVal?.candidate !== candidate) {
-      addCandidate(peers.value[candidate.from].pc, candidate.candidate);
-    }
-
-    if (offer && offer !== oldVal?.offer && oldVal?.offer !== undefined) {
-      const { from, desc } = offer;
-      initWebRTC(from, desc);
-    }
-  },
-  { deep: true },
-);
 </script>
 
 <template>
   <div class="min-h-screen p-4">
     <div class="max-w-6xl mx-auto">
-      <!-- Add participant counter -->
+      <!-- Participant Counter -->
       <div class="mb-4 text-sm text-muted-foreground">
-        Participants: {{ Object.keys(peers).length }}/{{
-          CONFERENCE_LIMITS.MAX_PEERS
-        }}
+        Participants: {{ participantCount }}/10
       </div>
-      <div :class="['grid gap-4 mb-4', gridColumns]">
+
+      <!-- Video Grid -->
+      <div class="grid gap-4 mb-4" :class="gridClass">
+        <!-- Remote Participants -->
         <div
-          v-for="(peer, key) in peers"
-          :key="key"
+          v-for="(stream, uid) in remoteStreams"
+          :key="uid"
           class="aspect-video bg-muted rounded-lg shadow-md overflow-hidden relative"
         >
+          <!-- Use a ref callback to assign the media stream -->
           <video
-            :id="key"
+            :ref="
+              (el) => {
+                if (el && remoteStreams[uid]) {
+                  el.srcObject = remoteStreams[uid];
+                }
+              }
+            "
+            style="transform: scaleX(-1)"
             class="w-full h-full object-cover"
             autoplay
             playsinline
           ></video>
         </div>
+        <!-- Local Participant -->
         <div
           class="aspect-video bg-muted rounded-lg shadow-md overflow-hidden relative ring-2 ring-primary/50"
         >
           <video
             ref="myVideo"
+            style="transform: scaleX(-1)"
             class="w-full h-full object-cover"
             autoplay
             playsinline
@@ -202,45 +139,35 @@ watch(
           ></video>
         </div>
       </div>
+
+      <!-- Controls -->
       <div
-        class="fixed bottom-6 left-1/2 transform -translate-x-1/2 flex justify-center space-x-4 mb-4"
+        class="fixed bottom-6 left-1/2 transform -translate-x-1/2 flex gap-4"
       >
         <Button
           :variant="localMuted ? 'destructive' : 'secondary'"
           size="icon"
-          @click="toggleMute"
+          @click="
+            localMuted = !localMuted;
+            toggleAudio();
+          "
         >
-          <MicOff v-if="localMuted" class="h-4 w-4" />
-          <Mic v-else class="h-4 w-4" />
+          <component :is="localMuted ? MicOff : Mic" class="h-4 w-4" />
         </Button>
+
         <Button
           :variant="localVideoOff ? 'destructive' : 'secondary'"
           size="icon"
-          @click="toggleVideo"
+          @click="
+            localVideoOff = !localVideoOff;
+            toggleVideo(myVideo);
+          "
         >
-          <VideoOff v-if="localVideoOff" class="h-4 w-4" />
-          <Video v-else class="h-4 w-4" />
+          <component :is="localVideoOff ? VideoOff : Video" class="h-4 w-4" />
         </Button>
-        <Button variant="destructive" size="icon">
+
+        <Button variant="destructive" size="icon" @click="handleLeave">
           <PhoneOff class="h-4 w-4" />
-        </Button>
-      </div>
-      <div class="flex justify-center space-x-4">
-        <Button
-          variant="outline"
-          @click="addParticipant"
-          :disabled="isAtCapacity"
-        >
-          <UserPlus class="h-4 w-4 mr-2" />
-          Add Participant
-        </Button>
-        <Button
-          variant="outline"
-          @click="removeParticipant"
-          :disabled="Object.keys(peers).length <= 1"
-        >
-          <UserMinus class="h-4 w-4 mr-2" />
-          Remove Participant
         </Button>
       </div>
     </div>

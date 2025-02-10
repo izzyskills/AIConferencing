@@ -9,6 +9,8 @@ export function useVideoConfiguration(roomId, userId) {
   const remoteStreams = reactive({});
   const peers = reactive({});
   const socket = ref(null);
+  const videoStopped = ref(false);
+  const audioStopped = ref(false);
   const constraints = {
     audio: { echoCancellation: true, noiseSuppression: true },
     video: { width: 400, height: 250 },
@@ -79,14 +81,23 @@ export function useVideoConfiguration(roomId, userId) {
 
   // Create a peer connection for a remote user
   async function createPeerConnection(remoteUserId) {
-    const pc = new RTCPeerConnection({ iceServers: servers.iceServers });
-
-    // Add local stream tracks
-    localStream.value.getTracks().forEach((track) => {
-      pc.addTrack(track, localStream.value);
+    const pc = new RTCPeerConnection({
+      iceServers: servers.iceServers,
+      iceTransportPolicy: "all",
     });
 
-    // Handle ICE candidates
+    // Add transceivers for proper media handling
+    pc.addTransceiver("video", { direction: "sendrecv" });
+    pc.addTransceiver("audio", { direction: "sendrecv" });
+
+    // Add local tracks if available
+    if (localStream.value) {
+      localStream.value.getTracks().forEach((track) => {
+        pc.addTrack(track, localStream.value);
+      });
+    }
+
+    // ICE Candidate handling
     pc.onicecandidate = ({ candidate }) => {
       if (candidate) {
         socket.value.send(
@@ -99,15 +110,24 @@ export function useVideoConfiguration(roomId, userId) {
       }
     };
 
-    // When a remote stream is received, store it in reactive remoteStreams
     pc.ontrack = (event) => {
+      console.log("ontrack event for", remoteUserId, event);
+      // Assuming remoteStreams is defined as a reactive object (e.g., reactive({}))
       remoteStreams[remoteUserId] = event.streams[0];
+    }; // Connection state monitoring
+    pc.onconnectionstatechange = () => {
+      console.log(`Connection state with ${remoteUserId}:`, pc.connectionState);
+      if (
+        pc.connectionState === "disconnected" ||
+        pc.connectionState === "failed"
+      ) {
+        handleUserLeft(remoteUserId);
+      }
     };
 
     peers[remoteUserId] = pc;
     return pc;
   }
-
   async function handleOffer(remoteUserId, offer) {
     console.log("Received offer from:", remoteUserId);
     console.log("Offer details:", offer);
@@ -138,7 +158,7 @@ export function useVideoConfiguration(roomId, userId) {
     console.log("Received answer from:", remoteUserId);
     console.log("Answer details:", answer);
 
-    const pc = peers.value[remoteUserId];
+    const pc = peers[remoteUserId];
     if (pc) {
       await pc.setRemoteDescription(new RTCSessionDescription(answer));
       console.log("Remote description set for answer");
@@ -146,10 +166,10 @@ export function useVideoConfiguration(roomId, userId) {
   }
 
   async function handleIceCandidate(remoteUserId, candidate) {
-    onsole.log("Received ICE candidate from:", remoteUserId);
+    console.log("Received ICE candidate from:", remoteUserId);
     console.log("Candidate details:", candidate);
 
-    const pc = peers.value[remoteUserId];
+    const pc = peers[remoteUserId];
     if (pc && pc.remoteDescription) {
       await pc.addIceCandidate(new RTCIceCandidate(candidate));
       console.log("ICE candidate added");
@@ -157,19 +177,30 @@ export function useVideoConfiguration(roomId, userId) {
   }
 
   async function initiateCall(remoteUserId) {
+    if (peers[remoteUserId]) return; // Avoid duplicate connections
+
     console.log("Initiating call to:", remoteUserId);
     const pc = await createPeerConnection(remoteUserId);
-    const offer = await pc.createOffer();
-    await pc.setLocalDescription(offer);
-    socket.value.send(
-      JSON.stringify({
-        type: "offer",
-        target: remoteUserId,
-        offer: offer,
-      }),
-    );
-  }
 
+    try {
+      const offer = await pc.createOffer({
+        offerToReceiveAudio: true,
+        offerToReceiveVideo: true,
+      });
+      await pc.setLocalDescription(offer);
+
+      socket.value.send(
+        JSON.stringify({
+          type: "offer",
+          target: remoteUserId,
+          offer: offer,
+        }),
+      );
+    } catch (error) {
+      console.error("Offer creation error:", error);
+      handleUserLeft(remoteUserId);
+    }
+  }
   function handleUserJoined(remoteUserId) {
     if (remoteUserId !== userId) {
       initiateCall(remoteUserId);
@@ -185,26 +216,131 @@ export function useVideoConfiguration(roomId, userId) {
   }
 
   // Toggle local video and audio tracks
-  function pauseVideo() {
-    localStream.value?.getVideoTracks().forEach((track) => {
-      track.stop(); // ✅ Toggle actual camera usage
-    });
-  }
-  function pauseAudio() {
-    localStream.value &&
-      localStream.value.getAudioTracks().forEach((t) => t.stop()); // ✅ Toggle actual microphone usage
-  }
+  async function toggleVideo(videoElement) {
+    if (!videoStopped.value) {
+      // Video is currently on. Stop video tracks and release the camera.
+      if (localStream.value) {
+        localStream.value.getVideoTracks().forEach((track) => track.stop());
+        // Optionally remove the video track from peer connections:
+        Object.values(peers).forEach((pc) => {
+          pc.getSenders().forEach((sender) => {
+            if (sender.track && sender.track.kind === "video") {
+              sender.replaceTrack(null);
+            }
+          });
+        });
+        // Optionally, clear the video from the UI.
+        if (videoElement) {
+          videoElement.srcObject = null;
+        }
+        videoStopped.value = true;
+      }
+    } else {
+      // Video is currently off. Start a new video stream.
+      try {
+        const newStream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+        });
+        // Here, we assume localStream.value was holding both audio and video.
+        // If you're using one stream for both, you might need to merge the new video track
+        // with any existing audio tracks. For simplicity, assume the new stream is your new local stream.
+        if (localStream.value) {
+          const newVideoTrack = newStream.getVideoTracks()[0];
+          localStream.value.addTrack(newVideoTrack);
+        } else {
+          localStream.value = newStream;
+        }
+        // Update peer connections:
 
+        if (videoElement) {
+          videoElement.srcObject = newStream;
+        }
+        // Update all peer connections with the new video track.
+        Object.values(peers).forEach((pc) => {
+          pc.getSenders().forEach((sender) => {
+            if (!sender.track || sender.track.kind === "video") {
+              // Replace the (null or ended) track with the new video track.
+              sender.replaceTrack(newVideoTrack);
+            }
+          });
+        });
+        videoStopped.value = false;
+      } catch (err) {
+        console.error("Error restarting video:", err);
+      }
+    }
+  }
+  async function toggleAudio() {
+    if (!audioStopped.value) {
+      // Audio is currently on. Stop audio tracks.
+      if (localStream.value) {
+        localStream.value.getAudioTracks().forEach((track) => track.stop());
+        // Remove audio from peer connections:
+        Object.values(peers).forEach((pc) => {
+          pc.getSenders().forEach((sender) => {
+            if (sender.track && sender.track.kind === "audio") {
+              sender.replaceTrack(null);
+            }
+          });
+        });
+        audioStopped.value = true;
+      }
+    } else {
+      // Audio is currently off. Restart audio.
+      try {
+        const newStream = await navigator.mediaDevices.getUserMedia({
+          audio: true,
+        });
+        // If you have a combined stream for audio & video, you might need to merge tracks.
+        // For now, we assume that for audio we simply update the audio track.
+        // If localStream already exists and contains video, you can add the new audio track to it:
+        if (localStream.value) {
+          const newAudioTrack = newStream.getAudioTracks()[0];
+          localStream.value.addTrack(newAudioTrack);
+          // Update peer connections:
+          Object.values(peers).forEach((pc) => {
+            pc.getSenders().forEach((sender) => {
+              if (!sender.track || sender.track.kind === "audio") {
+                sender.replaceTrack(newAudioTrack);
+              }
+            });
+          });
+        } else {
+          // Otherwise, if there's no existing local stream, just set it.
+          localStream.value = newStream;
+        }
+        audioStopped.value = false;
+      } catch (err) {
+        console.error("Error restarting audio:", err);
+      }
+    }
+  }
   // Cleanup on unmount
   function cleanup() {
-    socket.value?.close();
-    Object.values(peers).forEach((pc) => pc.close());
+    // Close all peer connections
+    Object.values(peers).forEach((pc) => {
+      pc.close();
+      pc.ontrack = null;
+      pc.onicecandidate = null;
+    });
+
+    // Stop all local media tracks
+    if (localStream.value) {
+      localStream.value.getTracks().forEach((track) => track.stop());
+      localStream.value = null;
+    }
+
+    // Close WebSocket
+    if (socket.value) {
+      socket.value.close();
+      socket.value = null;
+    }
+
+    // Clear remote streams
+    Object.keys(remoteStreams).forEach((key) => {
+      delete remoteStreams[key];
+    });
   }
-
-  onBeforeUnmount(() => {
-    cleanup();
-  });
-
   return {
     localStream,
     remoteStreams,
@@ -219,8 +355,8 @@ export function useVideoConfiguration(roomId, userId) {
     initiateCall,
     handleUserJoined,
     handleUserLeft,
-    pauseVideo,
-    pauseAudio,
+    toggleVideo,
+    toggleAudio,
     cleanup,
   };
 }
