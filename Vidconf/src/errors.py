@@ -48,6 +48,36 @@ class InvalidCredentials(VidconfException):
     pass
 
 
+class RoomFullException(VidconfException):
+    """Room has reached maximum capacity of 10 members."""
+
+    pass
+
+
+class RoomNotFoundException(VidconfException):
+    """Room not found."""
+
+    pass
+
+
+class UserNotFoundException(VidconfException):
+    """User not found."""
+
+    pass
+
+
+class PrivateRoomAccessDeniedException(VidconfException):
+    """This room is private. You need an invitation to join."""
+
+    pass
+
+
+class UserAlreadyInRoomException(VidconfException):
+    """You are already a member of this room."""
+
+    pass
+
+
 class InsufficientPermission(VidconfException):
     """User does not have the neccessary permissions to perform an action."""
 
@@ -171,6 +201,56 @@ def register_all_errors(app: FastAPI):
                 "message": "Account Not verified",
                 "error_code": "account_not_verified",
                 "resolution": "Please check your email for verification details",
+            },
+        ),
+    )
+    app.add_exception_handler(
+        PrivateRoomAccessDeniedException,
+        create_exception_handler(
+            status_code=status.HTTP_403_FORBIDDEN,
+            initial_detail={
+                "message": "This room is private. You need an invitation to join",
+                "error_code": "private_room_access_denied",
+            },
+        ),
+    )
+    app.add_exception_handler(
+        RoomFullException,
+        create_exception_handler(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            initial_detail={
+                "message": "Room has reached maximum capacity of 10 members",
+                "error_code": "room_full",
+            },
+        ),
+    )
+    app.add_exception_handler(
+        RoomNotFoundException,
+        create_exception_handler(
+            status_code=status.HTTP_404_NOT_FOUND,
+            initial_detail={
+                "message": "Room not found",
+                "error_code": "room_not_found",
+            },
+        ),
+    )
+    app.add_exception_handler(
+        UserNotFoundException,
+        create_exception_handler(
+            status_code=status.HTTP_404_NOT_FOUND,
+            initial_detail={
+                "message": "User not found",
+                "error_code": "user_not_found",
+            },
+        ),
+    )
+    app.add_exception_handler(
+        UserAlreadyInRoomException,
+        create_exception_handler(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            initial_detail={
+                "message": "You are already a member of this room",
+                "error_code": "user_already_in_room",
             },
         ),
     )

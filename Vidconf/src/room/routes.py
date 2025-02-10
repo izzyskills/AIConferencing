@@ -30,7 +30,7 @@ async def create_room(
     members_email = await room_service.get_all_room_members_emails(
         new_room.rid, session
     )
-    link = f"http:/{Config.DOMAIN}/room/join/{new_room.rid}"
+    link = f"http:/{Config.DOMAIN}/room/{new_room.rid}"
     html_message = f"""
     <html>
         <body>
@@ -52,9 +52,10 @@ async def join_room(
     token: dict = Depends(AccessTokenBearer()),
     session: AsyncSession = Depends(get_session),
 ):
-    if room_member_data.user_id != token["user"]["user_uid"]:
+    print(room_member_data)
+    if str(room_member_data.user_id) != str(token["user"]["user_uid"]):
         raise InvalidCredentials
-    if room_member_data.room_id != rid:
+    if str(room_member_data.room_id) != str(rid):
         raise InvalidCredentials
     room = await room_service.join_room(room_member_data, session)
     return room
@@ -122,6 +123,7 @@ async def websocket_endpoint(
     user_id: str,
     session: AsyncSession = Depends(get_session),
 ):
+    await manager.connect(websocket, room_id, user_id)
     # Validate room access
     room = await session.get(Room, room_id)
     if not room:
@@ -129,7 +131,8 @@ async def websocket_endpoint(
         return
 
     # Check room schedule
-    now = datetime.now()
+
+    now = datetime.now().astimezone(room.opens_at.tzinfo)
     if now < room.opens_at:
         await websocket.send_json(
             {"type": "error", "message": f"Room opens at {room.opens_at.isoformat()}"}
@@ -143,7 +146,6 @@ async def websocket_endpoint(
         )
         await websocket.close(code=4410)
         return
-    await manager.connect(websocket, room_id, user_id)
     try:
         await manager.broadcast(
             {"type": "user-joined", "userId": user_id}, room_id, exclude_user=user_id

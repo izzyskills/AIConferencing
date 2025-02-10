@@ -39,9 +39,9 @@ class Room(SQLModel, table=True):
     ended_at: Optional[datetime] = None
     opens_at: datetime = Field(sa_column=Column(DateTimeString))
     closes_at: datetime = Field(sa_column=Column(DateTimeString))
-    current_state: Column[str] = Column(
-        Enum("scheduled", "active", "ended", name="room_states"), default="scheduled"
-    )
+    # current_state: Column[str] = Column(
+    #     Enum("scheduled", "active", "ended", name="room_states"), default="scheduled"
+    # )
     created_at: datetime = Field(sa_column=Column(pg.TIMESTAMP, default=datetime.now))
     update_at: datetime = Field(sa_column=Column(pg.TIMESTAMP, default=datetime.now))
     created_by_user: User = Relationship(back_populates="rooms")

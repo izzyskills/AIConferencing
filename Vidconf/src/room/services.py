@@ -1,9 +1,16 @@
 from datetime import datetime, timedelta
 import uuid
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, selectinload
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.db.models import Room, RoomMember, User
+from src.errors import (
+    PrivateRoomAccessDeniedException,
+    RoomFullException,
+    RoomNotFoundException,
+    UserAlreadyInRoomException,
+    UserNotFoundException,
+)
 from src.room.utils import convert_email_to_RoomMemberModel
 from .schemas import CreateRoomModel, RoomMemberModel
 
@@ -100,43 +107,56 @@ class RoomService:
 
     async def join_room(self, room_member_data: RoomMemberModel, session: AsyncSession):
         room_member_data_dict = room_member_data.model_dump()
+
+        # Check user exists
         user = select(User).where(User.uid == room_member_data_dict["user_id"])
         user = (await session.exec(user)).first()
         if user is None:
-            raise ValueError("User not found")
+            raise UserNotFoundException
 
+        # Check room exists
         room = (
             select(Room)
             .where(Room.rid == room_member_data_dict["room_id"])
             .options(selectinload(Room.members))
         )
         room = (await session.exec(room)).first()
+        print(room)
         if room is None:
-            raise ValueError("Room not found")
+            raise RoomNotFoundException
+
+        # Check room capacity
         if len(room.members) >= 10:
-            raise ValueError("Room is full")
+            raise RoomFullException
 
         user_id = room_member_data_dict["user_id"]
         room_member = next(
             (member for member in room.members if member.user_id == user_id), None
         )
 
+        print(room_member)
+        # Handle private room access
         if not room.public:
             if room_member is None:
-                raise ValueError("Room is private and user is not a member")
+                raise PrivateRoomAccessDeniedException
             room_member.joint = True
             room_member.joined_at = datetime.now()
         else:
+            print("public room ")
             if room_member is not None:
-                raise ValueError("User already in room")
-            new_room_member = RoomMember(
-                **room_member_data_dict, joint=True, joined_at=datetime.now()
-            )
-            session.add(new_room_member)
+                # Update existing member's status instead of raising an error
+                room_member.joint = True
+                room_member.joined_at = datetime.now()
+                print("room member is not none")
+            else:
+                room_member = RoomMember(
+                    **room_member_data_dict, joint=True, joined_at=datetime.now()
+                )
+                print("room member created" + str(room_member))
+            session.add(room_member)
 
         await session.commit()
-
-        return room_member if room_member else new_room_member
+        return room_member
 
     async def update_room(self, room: Room, room_data: dict, session: AsyncSession):
         for k, v in room_data.items():
