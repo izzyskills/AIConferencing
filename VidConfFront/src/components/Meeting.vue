@@ -6,6 +6,7 @@ import { useVideoConfiguration } from "@/composables/useVideoConfiguration";
 import { useAuth } from "@/composables/useauth";
 import { onBeforeRouteLeave, useRoute, useRouter } from "vue-router";
 import { usePostJoinRoom } from "@/adapters/requests";
+import useAudioRecorder from "@/composables/useAudioRecorder";
 
 // Expect a roomId prop (you might also pass userId via auth)
 const route = useRoute();
@@ -16,6 +17,7 @@ const { error, joinRoom } = usePostJoinRoom();
 const redirectTimer = ref(null);
 const { getUser } = useAuth();
 const userId = getUser.value?.user_uid; // adjust as necessary
+const username = getUser.value?.email; // adjust as necessary
 
 // Reference to the local video element
 const myVideo = ref(null);
@@ -24,13 +26,26 @@ const myVideo = ref(null);
 const {
   localStream,
   remoteStreams,
+  usernames,
   initializeMedia,
   setupWebSocket,
   toggleAudio,
   toggleVideo,
   cleanup,
-} = useVideoConfiguration(roomId, userId);
+} = useVideoConfiguration(roomId, userId, username);
 
+const isHost = ref(false);
+if (Object.keys(remoteStreams).length === 0) {
+  isHost.value = true;
+}
+
+// Initialize the audio recorder composable.
+const { startRecording, stopRecording, recordingBlob } = useAudioRecorder(
+  localStream,
+  isHost,
+  roomId,
+);
+console.log(usernames);
 // Local UI state for toggles
 const localMuted = ref(false);
 const localVideoOff = ref(false);
@@ -73,10 +88,14 @@ onMounted(async () => {
       await initializeMedia(myVideo.value);
     }
     setupWebSocket();
+    // Start recording if this client is the host.
+    if (isHost.value) {
+      startRecording();
+    }
   } catch (err) {
     // Cleanup any partial initialization
     cleanup();
-
+    stopRecording();
     // Set redirect timer
     redirectTimer.value = setTimeout(() => {
       router.push("/dashboard");
@@ -86,11 +105,13 @@ onMounted(async () => {
 
 onBeforeRouteLeave((to, from, next) => {
   cleanup();
+  stopRecording();
   next();
 });
 onBeforeUnmount(() => {
   // Clean up the WebSocket and peer connections
   cleanup();
+  stopRecording();
 });
 </script>
 
@@ -124,6 +145,17 @@ onBeforeUnmount(() => {
             autoplay
             playsinline
           ></video>
+          >
+          <div
+            class="absolute bottom-2 left-2 bg-black bg-opacity-50 text-white text-xs p-1 rounded"
+          >
+            {{ usernames[uid] }}
+            <PhoneOff
+              v-if="remoteStreams[uid].ismuted"
+              remoteStreams[uid].ismuted
+              class="inline-block ml-1 h-4 w-4"
+            />
+          </div>
         </div>
         <!-- Local Participant -->
         <div
@@ -137,6 +169,12 @@ onBeforeUnmount(() => {
             playsinline
             muted
           ></video>
+          <div
+            class="absolute bottom-2 left-2 bg-black bg-opacity-50 text-white text-xs p-1 rounded"
+          >
+            {{ `You` }}
+            <PhoneOff v-if="localMuted" class="inline-block ml-1 h-4 w-4" />
+          </div>
         </div>
       </div>
 

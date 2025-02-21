@@ -3,11 +3,12 @@ import { log } from "@/utils/logging";
 import { servers } from "@/utils/ICEServers";
 import { config } from "@/config";
 
-export function useVideoConfiguration(roomId, userId) {
+export function useVideoConfiguration(roomId, userId, username) {
   // Reactive state
   const localStream = ref(null);
   const remoteStreams = reactive({});
   const peers = reactive({});
+  const usernames = reactive({});
   const socket = ref(null);
   const videoStopped = ref(false);
   const audioStopped = ref(false);
@@ -34,7 +35,7 @@ export function useVideoConfiguration(roomId, userId) {
   // Set up the WebSocket connection using the room and user IDs
   function setupWebSocket() {
     socket.value = new WebSocket(
-      `ws://localhost:8000/api/v1/room/ws/${roomId}/${userId}`,
+      `ws://localhost:8000/api/v1/room/ws/${roomId}/${userId}?username=${encodeURIComponent(username)}`,
     );
 
     socket.value.onmessage = async (event) => {
@@ -53,9 +54,11 @@ export function useVideoConfiguration(roomId, userId) {
         case "user-joined":
           // When another user joins, initiate a call to that user.
           console.log("User joined:", message.userId);
+          console.log("username:", message.username);
           if (message.userId !== userId) {
             await initiateCall(message.userId);
           }
+          usernames[message.userId] = message.username;
           break;
         case "user-left":
           handleUserLeft(message.userId);
@@ -83,12 +86,21 @@ export function useVideoConfiguration(roomId, userId) {
   async function createPeerConnection(remoteUserId) {
     const pc = new RTCPeerConnection({
       iceServers: servers.iceServers,
-      iceTransportPolicy: "all",
+      iceTransportPolicy: "all", // Try all candidates
+      iceCandidatePoolSize: 10,
+      bundlePolicy: "max-bundle",
+      rtcpMuxPolicy: "require",
     });
 
-    // Add transceivers for proper media handling
+    // Add transceivers with proper directions
     pc.addTransceiver("video", { direction: "sendrecv" });
     pc.addTransceiver("audio", { direction: "sendrecv" });
+
+    pc.onicegatheringstatechange = () => {
+      if (pc.iceGatheringState === "complete") {
+        // clearTimeout(iceTimeout);
+      }
+    };
 
     // Add local tracks if available
     if (localStream.value) {
@@ -177,18 +189,22 @@ export function useVideoConfiguration(roomId, userId) {
   }
 
   async function initiateCall(remoteUserId) {
-    if (peers[remoteUserId]) return; // Avoid duplicate connections
-
-    console.log("Initiating call to:", remoteUserId);
-    const pc = await createPeerConnection(remoteUserId);
-
     try {
+      const pc = await createPeerConnection(remoteUserId);
+
+      // Use explicit offer options
       const offer = await pc.createOffer({
-        offerToReceiveAudio: true,
-        offerToReceiveVideo: true,
+        offerToReceiveAudio: 1,
+        offerToReceiveVideo: 1,
+        iceRestart: true,
       });
+
       await pc.setLocalDescription(offer);
 
+      // Add SDP validation
+      if (!offer.sdp) {
+        throw new Error("Invalid SDP generated");
+      }
       socket.value.send(
         JSON.stringify({
           type: "offer",
@@ -260,6 +276,7 @@ export function useVideoConfiguration(roomId, userId) {
           pc.getSenders().forEach((sender) => {
             if (!sender.track || sender.track.kind === "video") {
               // Replace the (null or ended) track with the new video track.
+              const newVideoTrack = newStream.getVideoTracks()[0];
               sender.replaceTrack(newVideoTrack);
             }
           });
@@ -345,6 +362,7 @@ export function useVideoConfiguration(roomId, userId) {
     localStream,
     remoteStreams,
     peers,
+    usernames,
     socket,
     initializeMedia,
     setupWebSocket,
