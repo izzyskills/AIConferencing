@@ -32,17 +32,13 @@ const {
   toggleAudio,
   toggleVideo,
   cleanup,
+  isAdmin,
 } = useVideoConfiguration(roomId, userId, username);
-
-const isHost = ref(false);
-if (Object.keys(remoteStreams).length === 0) {
-  isHost.value = true;
-}
 
 // Initialize the audio recorder composable.
 const { startRecording, stopRecording, recordingBlob } = useAudioRecorder(
   localStream,
-  isHost,
+  isAdmin,
   roomId,
 );
 console.log(usernames);
@@ -89,7 +85,7 @@ onMounted(async () => {
     }
     setupWebSocket();
     // Start recording if this client is the host.
-    if (isHost.value) {
+    if (isAdmin.value) {
       startRecording();
     }
   } catch (err) {

@@ -2,9 +2,11 @@ import { ref, reactive, onBeforeUnmount } from "vue";
 import { log } from "@/utils/logging";
 import { servers } from "@/utils/ICEServers";
 import { config } from "@/config";
+import { useRouter } from "vue-router";
 
 export function useVideoConfiguration(roomId, userId, username) {
   // Reactive state
+  const router = useRouter();
   const localStream = ref(null);
   const remoteStreams = reactive({});
   const peers = reactive({});
@@ -12,6 +14,7 @@ export function useVideoConfiguration(roomId, userId, username) {
   const socket = ref(null);
   const videoStopped = ref(false);
   const audioStopped = ref(false);
+  const isAdmin = ref(false);
   const constraints = {
     audio: { echoCancellation: true, noiseSuppression: true },
     video: { width: 400, height: 250 },
@@ -63,6 +66,22 @@ export function useVideoConfiguration(roomId, userId, username) {
         case "user-left":
           handleUserLeft(message.userId);
           break;
+        case "admin-info":
+          isAdmin.value = message.isAdmin;
+          break;
+        case "admin-left":
+          alert(message.message);
+          cleanup();
+          break;
+        case "current-users":
+          message.users.forEach((user) => {
+            usernames[user.userId] = user.username;
+          });
+          break;
+        case "error":
+          alert(message.message);
+          break;
+
         default:
           // handle other events if necessary
           break;
@@ -77,8 +96,9 @@ export function useVideoConfiguration(roomId, userId, username) {
       log(`WebSocket error: ${err}`);
     };
 
-    socket.value.onclose = () => {
-      log("WebSocket connection closed");
+    socket.value.onclose = (event) => {
+      log("WebSocket connection closed:", event.reason);
+      router.push("/dashboard");
     };
   }
 
@@ -367,6 +387,7 @@ export function useVideoConfiguration(roomId, userId, username) {
     initializeMedia,
     setupWebSocket,
     createPeerConnection,
+    isAdmin,
     handleOffer,
     handleAnswer,
     handleIceCandidate,
