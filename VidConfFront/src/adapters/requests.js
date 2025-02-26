@@ -8,6 +8,7 @@ import { ref } from "vue";
 import { useAxiosPrivate } from "@/composables/useAxiosPrivate";
 import { handleErrors } from "@/lib/utils";
 import { toast, useToast } from "@/components/ui/toast";
+import { blobToBase64 } from "@/utils/blobtojson";
 
 function useLogin() {
   const router = useRouter();
@@ -217,6 +218,63 @@ function usePostJoinRoom() {
   });
   return { error, joinRoom };
 }
+const usePostAudioRecording = () => {
+  const error = ref(null);
+  const apiClientPrivate = useAxiosPrivate();
+  const postAudioRecording = useMutation({
+    mutationFn: async ({ rid, blob }) => {
+      try {
+        const formData = new FormData();
+        formData.append("file", blob, "audio.wav");
+
+        const res = await apiClientPrivate.post(
+          `/room/upload/${rid}`,
+          formData,
+          {
+            headers: {
+              "Content-Type": "multipart/form-data",
+            },
+          },
+        );
+        return res.data;
+      } catch (error) {
+        console.error(error);
+      }
+    },
+    onError: (err) => {
+      const response = err.response?.data;
+
+      // Handle specific error cases
+      switch (response?.error_code) {
+        case "room_full":
+          error.value =
+            "This room has reached its maximum capacity of 10 members.";
+          break;
+        case "room_not_found":
+          error.value = "The room you're trying to join does not exist.";
+          break;
+        case "private_room_access_denied":
+          error.value =
+            "This is a private room. You need an invitation to join.";
+          break;
+        default:
+          error.value =
+            "An error occurred while joining the room. Please try again.";
+      }
+      toast({
+        title: "Uh oh! Something went wrong.",
+        description: error.value,
+        variant: "destructive",
+      });
+      if (typeof window !== "undefined") {
+        setTimeout(() => {
+          router.push("/dashboard");
+        }, 5000);
+      }
+    },
+  });
+  return { error, postAudioRecording };
+};
 
 export {
   useSignup,
@@ -225,4 +283,5 @@ export {
   useCreateRoom,
   useGetRooms,
   usePostJoinRoom,
+  usePostAudioRecording,
 };

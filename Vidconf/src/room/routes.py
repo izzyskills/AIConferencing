@@ -1,7 +1,11 @@
 from collections import defaultdict
 from datetime import datetime, timedelta
+import os
+import shutil
 import uuid
-from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Depends, File, UploadFile, WebSocket, WebSocketDisconnect
+from sqlalchemy.orm import selectinload
+from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.auth.dependencies import AccessTokenBearer
 from src.auth.schemas import EmailModel
@@ -61,6 +65,24 @@ async def join_room(
     return room
 
 
+AUDIO_SAVE_PATH = "recordings"
+os.makedirs(AUDIO_SAVE_PATH, exist_ok=True)
+
+
+@room_router.post("/upload/{rid}")
+async def upload_file(
+    rid: uuid.UUID,
+    file: UploadFile = File(...),
+    token: dict = Depends(AccessTokenBearer()),
+    session: AsyncSession = Depends(get_session),
+):
+    file_path = os.path.join(AUDIO_SAVE_PATH, file.filename)
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+
+    return {"message": "Audio uploaded successfully", "file_path": file_path}
+
+
 @room_router.get("/all")
 async def get_rooms(
     token: dict = Depends(AccessTokenBearer()),
@@ -88,11 +110,15 @@ class ConnectionManager:
     def __init__(self):
         self.active_connections = {}
         self.room_connections = defaultdict(dict)
+        self.usernames = {}
 
-    async def connect(self, websocket: WebSocket, room_id: str, user_id: str):
+    async def connect(
+        self, websocket: WebSocket, room_id: str, user_id: str, user_name: str
+    ):
         await websocket.accept()
         self.active_connections[user_id] = websocket
         self.room_connections[room_id][user_id] = websocket
+        self.usernames[user_id] = user_name
 
     def disconnect(self, room_id: str, user_id: str):
         if user_id in self.active_connections:
@@ -102,6 +128,8 @@ class ConnectionManager:
             and user_id in self.room_connections[room_id]
         ):
             del self.room_connections[room_id][user_id]
+        if user_id in self.usernames:
+            del self.usernames[user_id]
 
     async def send_personal_message(self, message: dict, user_id: str):
         if websocket := self.active_connections.get(user_id):
@@ -121,11 +149,15 @@ async def websocket_endpoint(
     websocket: WebSocket,
     room_id: str,
     user_id: str,
+    username: str,
     session: AsyncSession = Depends(get_session),
 ):
-    await manager.connect(websocket, room_id, user_id)
+    await manager.connect(websocket, room_id, user_id, username)
     # Validate room access
-    room = await session.get(Room, room_id)
+    result = await session.exec(
+        select(Room).options(selectinload(Room.members)).where(Room.rid == room_id)
+    )
+    room = result.first()
     if not room:
         await websocket.close(code=4404)
         return
@@ -146,9 +178,33 @@ async def websocket_endpoint(
         )
         await websocket.close(code=4410)
         return
+    print(manager.active_connections.keys())
+    admin_present = any(
+        member.is_admin
+        for member in room.members
+        if str(member.user_id) in list(manager.active_connections.keys())
+    )
+    if not admin_present and user_id != str(room.created_by):
+        await websocket.send_json(
+            {"type": "error", "message": "Admin is not present in the room"}
+        )
+        await websocket.close(code=4411)
+        return
+
+    is_admin = user_id == str(room.created_by)
+    await websocket.send_json({"type": "admin-info", "isAdmin": is_admin})
+
+    current_users = [
+        {"userId": uid, "username": manager.usernames[uid]}
+        for uid in manager.room_connections[room_id].keys()
+    ]
+    await websocket.send_json({"type": "current-users", "users": current_users})
+
     try:
         await manager.broadcast(
-            {"type": "user-joined", "userId": user_id}, room_id, exclude_user=user_id
+            {"type": "user-joined", "userId": user_id, "username": username},
+            room_id,
+            exclude_user=user_id,
         )
 
         while True:
@@ -178,3 +234,12 @@ async def websocket_endpoint(
     except WebSocketDisconnect:
         manager.disconnect(room_id, user_id)
         await manager.broadcast({"type": "user-left", "userId": user_id}, room_id)
+
+        if user_id == str(room.created_by):
+            await manager.broadcast(
+                {type: "admin-left", "message": "Admin left the room. Closing room."},
+                room_id,
+            )
+            for uid in list(manager.room_connections[room_id].keys()):
+                await manager.active_connections[uid].close(code=4412)
+            del manager.active_connections[room_id]
