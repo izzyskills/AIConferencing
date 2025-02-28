@@ -1,4 +1,5 @@
-<script setup>
+import React from "react";
+
 const items = [
   {
     id: 1,
@@ -33,66 +34,66 @@ const items = [
     description: "Lorem ipsum dolor amet sit consect adipiscing.",
   },
 ];
-</script>
 
-<template>
-  <section>
-    <div class="max-w-7xl px-6 mx-auto md:px-4">
-      <div class="cq8p6 border-gray-300 md:py-20 border-t py-12">
-        <!-- Section header -->
-        <div class="text-center max-w-4xl md:pb-20 mx-auto pb-12">
-          <h2 class="font-red-hat-display cdjn8">
-            Put clarity at the center of your website
-          </h2>
-        </div>
-        <!-- Items -->
-        <div
-          class="grid grid-cols-2 md:grid-cols-4 max-w-none md:max-w-3xl gap-6 md:gap-4 mx-auto"
-          data-aos-id-featbl=""
-        >
-          <a
-            v-for="item in items"
-            :key="item.id"
-            :class="`text-white bg-gradient-to-tr ${item.bgClass} shadow-2xl flex-col ccqhl flex p-5 aos-init aos-animate`"
-            data-aos="fade-down"
-            data-aos-anchor="[data-aos-id-featbl]"
-            :data-aos-delay="item.id * 100 - 100"
-            href="#0"
+const FeaturesCard = () => {
+  return (
+    <section>
+      <div className="max-w-7xl px-6 mx-auto md:px-4">
+        <div className="cq8p6 border-gray-300 md:py-20 border-t py-12">
+          {/* Section header */}
+          <div className="text-center max-w-4xl md:pb-20 mx-auto pb-12">
+            <h2 className="font-red-hat-display cdjn8">
+              Put clarity at the center of your website
+            </h2>
+          </div>
+          {/* Items */}
+          <div
+            className="grid grid-cols-2 md:grid-cols-4 max-w-none md:max-w-3xl gap-6 md:gap-4 mx-auto"
+            data-aos-id-featbl=""
           >
-            <svg
-              class="mb-3 h-8 w-8"
-              viewBox="0 0 32 32"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                class="fill-current"
-                :d="item.iconPath"
-                fill-rule="nonzero"
-              ></path>
-            </svg>
-            <div class="font-red-hat-display ckyqm c21u3 czz36 mb-1">
-              {{ item.title }}
-            </div>
-            <div class="opacity-80 mb-4 flex-grow">
-              {{ item.description }}
-            </div>
-            <svg
-              class="ca6it transform -translate-x-2 duration-150 ease-in-out transition transform self-end h-6 w-6"
-              viewBox="0 0 24 24"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                class="fill-current"
-                d="M13 11V5.057L22.72 12 13 18.943V13H2v-2h11zm2 4.057L19.28 12 15 8.943v6.114z"
-              ></path>
-            </svg>
-          </a>
+            {items.map((item) => (
+              <a
+                key={item.id}
+                className={`text-white bg-gradient-to-tr ${item.bgClass} shadow-2xl flex-col ccqhl flex p-5 aos-init aos-animate`}
+                data-aos="fade-down"
+                data-aos-anchor="[data-aos-id-featbl]"
+                data-aos-delay={item.id * 100 - 100}
+                href="#0"
+              >
+                <svg
+                  className="mb-3 h-8 w-8"
+                  viewBox="0 0 32 32"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    className="fill-current"
+                    d={item.iconPath}
+                    fillRule="nonzero"
+                  ></path>
+                </svg>
+                <div className="font-red-hat-display ckyqm c21u3 czz36 mb-1">
+                  {item.title}
+                </div>
+                <div className="opacity-80 mb-4 flex-grow">
+                  {item.description}
+                </div>
+                <svg
+                  className="ca6it transform -translate-x-2 duration-150 ease-in-out transition transform self-end h-6 w-6"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    className="fill-current"
+                    d="M13 11V5.057L22.72 12 13 18.943V13H2v-2h11zm2 4.057L19.28 12 15 8.943v6.114z"
+                  ></path>
+                </svg>
+              </a>
+            ))}
+          </div>
         </div>
       </div>
-    </div>
-  </section>
-</template>
+    </section>
+  );
+};
 
-<style scoped>
-/* Add any additional styles here */
-</style>
+export default FeaturesCard;
