@@ -1,23 +1,23 @@
-import { useAuth } from "@/composables/useauth";
 import { apiClient, queryClient } from "./api";
-import { useMutation, useQuery } from "@tanstack/vue-query";
-import { useRouter, useRoute } from "vue-router";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { useNavigate, useLocation } from "react-router-dom";
 import { jwtDecode } from "jwt-decode";
 import axios from "axios";
-import { ref } from "vue";
-import { useAxiosPrivate } from "@/composables/useAxiosPrivate";
-import { handleErrors } from "@/lib/utils";
-import { toast, useToast } from "@/components/ui/toast";
-import { blobToBase64 } from "@/utils/blobtojson";
+import { useState } from "react";
+import useAuth from "@/hooks/useAuth";
+import useAxiosPrivate from "@/hooks/useAxiosPrivate";
+import { useToast } from "@/components/ui/use-toast";
+import { handleErrors } from "@/utils/handleErrors";
 
 function useLogin() {
-  const router = useRouter();
-  const route = useRoute();
-  const from = route.query.from || "/";
+  const navigate = useNavigate();
+  const location = useLocation();
+  const from = location.state?.from?.pathname || "/";
   const { setAuth } = useAuth();
   const { toast } = useToast();
-  const error = ref(null);
-  const login = useMutation({
+  const [error, setError] = useState(null);
+
+  return useMutation({
     mutationFn: (formData) => {
       return apiClient.post("auth/login", formData, {
         headers: {
@@ -33,36 +33,31 @@ function useLogin() {
       setAuth({ user, token });
       queryClient.invalidateQueries(["userdata", user.uid]);
       toast({ description: "Login Successful" });
-      router.push(from, { replace: true });
+      navigate(from, { replace: true });
     },
     onError: (err) => {
-      handleErrors(err, error, "Signing In");
+      handleErrors(err, setError, "Signing In");
       if (axios.isAxiosError(err) && err.response) {
         const { data } = err.response;
         if (data && data.error_code === "invalid_email_or_password") {
-          error.value = "invalid mail or passowrd";
+          setError("invalid mail or password");
         } else if (data && data.error_code === "account_not_verified") {
-          error.value = "Account not Verified \n check mail for details";
+          setError("Account not Verified \n check mail for details");
         } else {
-          error.value = data.error_code || "An error occurred during login";
+          setError(data.error_code || "An error occurred during login");
         }
       } else {
-        error.value = "An unexpected error occurred";
+        setError("An unexpected error occurred");
       }
     },
   });
-
-  return {
-    error,
-    login,
-  };
 }
 
 function useSignup() {
-  const router = useRouter();
-  const error = ref(null);
+  const navigate = useNavigate();
+  const [error, setError] = useState(null);
 
-  const signup = useMutation({
+  return useMutation({
     mutationFn: async (formData) => {
       const response = await apiClient.post(`auth/signup`, formData, {
         headers: {
@@ -74,56 +69,53 @@ function useSignup() {
     onSuccess: (data) => {
       if (!data || !data.user.email) {
         console.error("Invalid data received:", data);
-        error.value = "Invalid response from server";
+        setError("Invalid response from server");
         return;
       }
       queryClient.invalidateQueries();
-      // Note: You'll need to implement a toast notification system for Vue
+      // Add toast notification if you have a toast system
       // toast.success("You have been successfully registered.");
-      router.push("/login");
+      navigate("/login");
     },
     onError: (err) => {
-      handleErrors(err, error, "Signing  Up");
+      handleErrors(err, setError, "Signing Up");
     },
   });
-
-  return {
-    signup,
-    error,
-  };
 }
 
 function useLogout() {
-  const router = useRouter();
-  const error = ref(null);
+  const navigate = useNavigate();
+  const [error, setError] = useState(null);
   const { setAuth } = useAuth();
   const apiClientPrivate = useAxiosPrivate();
-  const logout = useMutation({
+
+  return useMutation({
     mutationFn: async () => {
       try {
         const res = await apiClientPrivate.get("/auth/logout");
         return res.data;
       } catch (error) {
         console.error(error);
+        throw error;
       }
     },
     onSuccess: () => {
       setAuth({});
       queryClient.invalidateQueries();
-      router.push("/", { replace: true });
+      navigate("/", { replace: true });
       localStorage.removeItem("authState");
     },
     onError: (err) => {
-      handleErrors(err, error, "Logging Out");
+      handleErrors(err, setError, "Logging Out");
     },
   });
-  return { error, logout };
 }
 
 function useCreateRoom() {
-  const error = ref(null);
+  const [error, setError] = useState(null);
   const apiClientPrivate = useAxiosPrivate();
-  const createRoom = useMutation({
+
+  return useMutation({
     mutationFn: async (formData) => {
       try {
         console.log(formData);
@@ -135,22 +127,23 @@ function useCreateRoom() {
         return res.data;
       } catch (error) {
         console.error(error);
+        throw error;
       }
     },
     onSuccess: () => {
       queryClient.invalidateQueries(["rooms"]);
     },
     onError: (err) => {
-      handleErrors(err, error, "Creating Meeting");
+      handleErrors(err, setError, "Creating Meeting");
     },
   });
-  return { error, createRoom };
 }
 
 function useGetRooms() {
-  const error = ref(null);
+  const [error, setError] = useState(null);
   const apiClientPrivate = useAxiosPrivate();
-  const getRooms = useQuery({
+
+  return useQuery({
     queryKey: ["rooms"],
     queryFn: async () => {
       try {
@@ -158,20 +151,21 @@ function useGetRooms() {
         return res.data;
       } catch (error) {
         console.error(error);
+        throw error;
       }
     },
     onError: (err) => {
-      handleErrors(err, error, "Fetching Rooms");
+      handleErrors(err, setError, "Fetching Rooms");
     },
   });
-  return { error, getRooms };
 }
 
 function usePostJoinRoom() {
-  const error = ref(null);
-  const router = useRouter();
+  const [error, setError] = useState(null);
+  const navigate = useNavigate();
   const apiClientPrivate = useAxiosPrivate();
-  const joinRoom = useMutation({
+
+  return useMutation({
     mutationFn: async ({ rid, formData }) => {
       try {
         const res = await apiClientPrivate.post(`/room/join/${rid}`, formData, {
@@ -182,6 +176,7 @@ function usePostJoinRoom() {
         return res.data;
       } catch (error) {
         console.error(error);
+        throw error;
       }
     },
     onError: (err) => {
@@ -190,38 +185,41 @@ function usePostJoinRoom() {
       // Handle specific error cases
       switch (response?.error_code) {
         case "room_full":
-          error.value =
-            "This room has reached its maximum capacity of 10 members.";
+          setError("This room has reached its maximum capacity of 10 members.");
           break;
         case "room_not_found":
-          error.value = "The room you're trying to join does not exist.";
+          setError("The room you're trying to join does not exist.");
           break;
         case "private_room_access_denied":
-          error.value =
-            "This is a private room. You need an invitation to join.";
+          setError("This is a private room. You need an invitation to join.");
           break;
         default:
-          error.value =
-            "An error occurred while joining the room. Please try again.";
+          setError(
+            "An error occurred while joining the room. Please try again.",
+          );
       }
+
       toast({
         title: "Uh oh! Something went wrong.",
-        description: error.value,
+        description: error,
         variant: "destructive",
       });
+
       if (typeof window !== "undefined") {
         setTimeout(() => {
-          router.push("/dashboard");
+          navigate("/dashboard");
         }, 5000);
       }
     },
   });
-  return { error, joinRoom };
 }
-const usePostAudioRecording = () => {
-  const error = ref(null);
+
+function usePostAudioRecording() {
+  const [error, setError] = useState(null);
+  const navigate = useNavigate();
   const apiClientPrivate = useAxiosPrivate();
-  const postAudioRecording = useMutation({
+
+  return useMutation({
     mutationFn: async ({ rid, blob }) => {
       try {
         const formData = new FormData();
@@ -239,6 +237,7 @@ const usePostAudioRecording = () => {
         return res.data;
       } catch (error) {
         console.error(error);
+        throw error;
       }
     },
     onError: (err) => {
@@ -247,34 +246,34 @@ const usePostAudioRecording = () => {
       // Handle specific error cases
       switch (response?.error_code) {
         case "room_full":
-          error.value =
-            "This room has reached its maximum capacity of 10 members.";
+          setError("This room has reached its maximum capacity of 10 members.");
           break;
         case "room_not_found":
-          error.value = "The room you're trying to join does not exist.";
+          setError("The room you're trying to join does not exist.");
           break;
         case "private_room_access_denied":
-          error.value =
-            "This is a private room. You need an invitation to join.";
+          setError("This is a private room. You need an invitation to join.");
           break;
         default:
-          error.value =
-            "An error occurred while joining the room. Please try again.";
+          setError(
+            "An error occurred while joining the room. Please try again.",
+          );
       }
+
       toast({
         title: "Uh oh! Something went wrong.",
-        description: error.value,
+        description: error,
         variant: "destructive",
       });
+
       if (typeof window !== "undefined") {
         setTimeout(() => {
-          router.push("/dashboard");
+          navigate("/dashboard");
         }, 5000);
       }
     },
   });
-  return { error, postAudioRecording };
-};
+}
 
 export {
   useSignup,
