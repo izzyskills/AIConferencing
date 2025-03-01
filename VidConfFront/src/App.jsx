@@ -8,6 +8,7 @@ const SignupView = lazy(() => import("./pages/SignupView"));
 const LoginView = lazy(() => import("./pages/LoginView"));
 const DashboardView = lazy(() => import("./pages/Dashboard"));
 const NotFound = lazy(() => import("./pages/NotFound"));
+const MeetingView = lazy(() => import("./pages/MeetingView"));
 
 // Component to handle loading state during lazy loading
 const SuspenseWrapper = ({ children }) => (
@@ -63,16 +64,16 @@ const App = createBrowserRouter([
       </RequireAuth>
     ),
   },
-  // {
-  //   path: "/room/:roomId",
-  //   element: (
-  //     <RequireAuth>
-  //       <SuspenseWrapper>
-  //         <Meeting />
-  //       </SuspenseWrapper>
-  //     </RequireAuth>
-  //   ),
-  // },
+  {
+    path: "/room/:roomId",
+    element: (
+      <RequireAuth>
+        <SuspenseWrapper>
+          <MeetingView />
+        </SuspenseWrapper>
+      </RequireAuth>
+    ),
+  },
   {
     path: "*",
     element: (

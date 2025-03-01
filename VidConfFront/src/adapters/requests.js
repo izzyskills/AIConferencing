@@ -8,6 +8,7 @@ import useAuth from "@/hooks/useAuth";
 import useAxiosPrivate from "@/hooks/useAxiosPrivate";
 import { useToast } from "@/components/ui/use-toast";
 import { handleErrors } from "@/utils/handleErrors";
+import { handleError } from "./utils";
 
 function useLogin() {
   const navigate = useNavigate();
@@ -274,6 +275,45 @@ function usePostAudioRecording() {
     },
   });
 }
+function useStreamToken() {
+  const apiClientPrivate = useAxiosPrivate();
+  return useMutation({
+    mutationFn: async () => {
+      const response = await apiClientPrivate.post("/external/stream/token");
+      return response.data;
+    },
+  });
+}
+
+function useAssemblyToken() {
+  const apiClientPrivate = useAxiosPrivate();
+  return useMutation({
+    mutationFn: async () => {
+      const response = await apiClientPrivate.post("/exteral/assembly/token");
+      return response.data;
+    },
+  });
+}
+function useLemur() {
+  const apiClientPrivate = useAxiosPrivate();
+  return useMutation({
+    mutationFn: async (prompt) => {
+      const response = await apiClientPrivate.post(
+        "/external/lemur",
+        { prompt },
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        },
+      );
+      return response.data;
+    },
+    onError: (err) => {
+      handleError(err);
+    },
+  });
+}
 
 export {
   useSignup,
@@ -283,4 +323,7 @@ export {
   useGetRooms,
   usePostJoinRoom,
   usePostAudioRecording,
+  useStreamToken,
+  useAssemblyToken,
+  useLemur,
 };
