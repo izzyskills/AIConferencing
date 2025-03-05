@@ -13,7 +13,7 @@ export function createMicrophone(stream) {
       });
       source = audioContext.createMediaStreamSource(stream);
 
-      await audioContext.audioWorklet.addModule("audio-processor.js");
+      await audioContext.audioWorklet.addModule("/audio-processor.js");
       audioWorkletNode = new AudioWorkletNode(audioContext, "audio-processor");
 
       source.connect(audioWorkletNode);

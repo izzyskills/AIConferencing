@@ -141,7 +141,6 @@ function useCreateRoom() {
 }
 
 function useGetRooms() {
-  const [error, setError] = useState(null);
   const apiClientPrivate = useAxiosPrivate();
 
   return useQuery({
@@ -194,6 +193,17 @@ function usePostJoinRoom() {
         case "private_room_access_denied":
           setError("This is a private room. You need an invitation to join.");
           break;
+        case "room_not_started":
+          setError(
+            `room has not started it starts at ${response?.starting_time}`,
+          );
+          break;
+        case "room_closed":
+          setError(
+            `the room is closed, it cloased at ${response?.closing_time}`,
+          );
+          break;
+
         default:
           setError(
             "An error occurred while joining the room. Please try again.",
@@ -287,10 +297,19 @@ function useStreamToken() {
 
 function useAssemblyToken() {
   const apiClientPrivate = useAxiosPrivate();
-  return useMutation({
-    mutationFn: async () => {
-      const response = await apiClientPrivate.post("/exteral/assembly/token");
-      return response.data;
+  return useQuery({
+    queryKey: ["assembly-token"],
+    queryFn: async () => {
+      try {
+        const res = await apiClientPrivate.get("/external/assembly/token");
+        return res.data;
+      } catch (error) {
+        console.error(error);
+        throw error;
+      }
+    },
+    onError: (err) => {
+      handleErrors(err, setError, "Fetching Rooms");
     },
   });
 }

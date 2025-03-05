@@ -15,14 +15,14 @@ const useAxiosPrivate = () => {
         }
         return config;
       },
-      (error) => Promise.reject(error)
+      (error) => Promise.reject(error),
     );
 
     const responseIntercept = apiClientPrivate.interceptors.response.use(
       (response) => response,
       async (error) => {
         const prevRequest = error?.config;
-        if (error?.response?.status === 403 && !prevRequest?.sent) {
+        if (error?.response?.status === 401 && !prevRequest?.sent) {
           prevRequest.sent = true;
           try {
             const newAccessToken = await refresh();
@@ -40,7 +40,7 @@ const useAxiosPrivate = () => {
           }
         }
         return Promise.reject(error);
-      }
+      },
     );
     return () => {
       apiClientPrivate.interceptors.request.eject(requestIntercept);
