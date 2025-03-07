@@ -57,11 +57,11 @@ const App = createBrowserRouter([
   {
     path: "/dashboard",
     element: (
-      <RequireAuth>
-        <SuspenseWrapper>
+      <SuspenseWrapper>
+        <RequireAuth>
           <DashboardView />
-        </SuspenseWrapper>
-      </RequireAuth>
+        </RequireAuth>
+      </SuspenseWrapper>
     ),
   },
   {

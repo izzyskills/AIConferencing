@@ -1,4 +1,4 @@
-import { useStreamToken } from "@/adapters/Requests";
+import { usePostJoinRoom, useStreamToken } from "@/adapters/Requests";
 import CallContainer from "@/components/CallContainer";
 import ErrorScreen from "@/components/ErrorScreen";
 import useAuth from "@/hooks/useAuth";
@@ -11,17 +11,25 @@ export default function MeetingView() {
   const { user } = useAuth();
   const { roomId } = useParams();
   const streamToken = useStreamToken();
-
-  const getUserTokenFunction = useCallback(() => {
-    getUserToken(
-      user.user_uid,
-      user.email,
-      streamToken,
-      setHomeState,
-      setError,
-      roomId,
-    );
-  }, [user, streamToken, roomId]);
+  const joinRoom = usePostJoinRoom();
+  const getUserTokenFunction = useCallback(async () => {
+    try {
+      await joinRoom.mutateAsync({
+        rid: roomId,
+        formData: { room_id: roomId, user_id: user.user_uid },
+      });
+      await getUserToken(
+        user.user_uid,
+        user.email,
+        streamToken,
+        setHomeState,
+        setError,
+        roomId,
+      );
+    } catch (err) {
+      setError(err.message || "An error occurred");
+    }
+  }, []);
 
   useEffect(() => {
     getUserTokenFunction();

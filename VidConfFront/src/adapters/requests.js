@@ -13,7 +13,7 @@ import { handleError } from "./utils";
 function useLogin() {
   const navigate = useNavigate();
   const location = useLocation();
-  const from = location.state?.from?.pathname || "/";
+  const from = location.state?.from?.pathname || "/dashboard";
   const { setAuth } = useAuth();
   const { toast } = useToast();
   const [error, setError] = useState(null);
