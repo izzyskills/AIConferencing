@@ -2,13 +2,17 @@ from fastapi import APIRouter, HTTPException, Depends
 import requests
 from src.auth.dependencies import AccessTokenBearer
 import stream_chat
+import assemblyai as aai
 
 from src.config import Config
 from src.external.schemas import LemurRequest
 
 external_router = APIRouter()
 
-ASSEMBLY_API_URL = "https://api.assemblyai.com/v2/lemur/task"
+ASSEMBLY_API_URL = "https://api.assemblyai.com/lemur/v3/generate/task"
+
+# set the API key
+aai.settings.api_key = f"{Config.ASSEMBLY_API_KEY}"
 
 
 @external_router.post("/lemur")
@@ -28,6 +32,8 @@ async def process_lemur_request(request_data: LemurRequest):
     response = requests.post(
         ASSEMBLY_API_URL,
         json={
+            "final_model": "anthropic/claude-3-haiku",
+            "temperature": 0.5,
             "prompt": final_prompt,
             "input_text": "This is a conversation during a video call.",
         },
@@ -45,26 +51,27 @@ async def process_lemur_request(request_data: LemurRequest):
     return response.json()
 
 
-@external_router.post("/assembly/token")
-async def get_assembly_token():
-    if not Config.ASSEMBLY_API_KEY:
-        raise HTTPException(status_code=500, detail="Missing API key")
+@external_router.get("/assembly/token")
+async def generate_assembly_token():
+    api_key = Config.ASSEMBLY_API_KEY
 
-    response = requests.post(
-        ASSEMBLY_API_URL,
-        json={"expires_in": 3600000000},  # 1 hour in microseconds
-        headers={
-            "Authorization": Config.ASSEMBLY_API_KEY,
-            "Content-Type": "application/json",
-        },
-    )
+    if not api_key:
+        raise HTTPException(status_code=500, detail="API key not configured")
 
-    if response.status_code != 200:
-        raise HTTPException(
-            status_code=response.status_code, detail="Error from AssemblyAI"
+    try:
+        # Initialize the AssemblyAI client
+
+        # Create a temporary token for real-time transcription
+        token = aai.RealtimeTranscriber.create_temporary_token(
+            expires_in=360000  # Expiration time in milliseconds
         )
 
-    return response.json()
+        return {"token": token}
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Failed to generate token: {str(e)}"
+        )
 
 
 @external_router.post("/stream/token")

@@ -27,7 +27,6 @@ async def create_room(
     token: dict = Depends(AccessTokenBearer()),
     session: AsyncSession = Depends(get_session),
 ):
-    print(token["user"]["user_uid"], room_data.created_by)
     if str(token["user"]["user_uid"]) != str(room_data.created_by):
         raise InvalidCredentials
     new_room = await room_service.create_room(room_data, session)
@@ -56,7 +55,6 @@ async def join_room(
     token: dict = Depends(AccessTokenBearer()),
     session: AsyncSession = Depends(get_session),
 ):
-    print(room_member_data)
     if str(room_member_data.user_id) != str(token["user"]["user_uid"]):
         raise InvalidCredentials
     if str(room_member_data.room_id) != str(rid):
@@ -178,7 +176,6 @@ async def websocket_endpoint(
         )
         await websocket.close(code=4410)
         return
-    print(manager.active_connections.keys())
     admin_present = any(
         member.is_admin
         for member in room.members
@@ -242,4 +239,4 @@ async def websocket_endpoint(
             )
             for uid in list(manager.room_connections[room_id].keys()):
                 await manager.active_connections[uid].close(code=4412)
-            del manager.active_connections[room_id]
+            del manager.room_connections[room_id]

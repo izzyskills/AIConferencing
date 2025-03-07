@@ -8,6 +8,7 @@ class RoomMemberModel(BaseModel):
     room_id: uuid.UUID
     user_id: uuid.UUID
     is_admin: Optional[bool] = False
+    joint: Optional[bool] = False
 
 
 class CreateRoomModel(BaseModel):

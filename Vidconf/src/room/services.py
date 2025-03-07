@@ -6,8 +6,10 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from src.db.models import Room, RoomMember, User
 from src.errors import (
     PrivateRoomAccessDeniedException,
+    RoomCloasedException,
     RoomFullException,
     RoomNotFoundException,
+    RoomNotSartedException,
     UserAlreadyInRoomException,
     UserNotFoundException,
 )
@@ -121,9 +123,15 @@ class RoomService:
             .options(selectinload(Room.members))
         )
         room = (await session.exec(room)).first()
-        print(room)
         if room is None:
             raise RoomNotFoundException
+
+        now = datetime.now().astimezone(room.opens_at.tzinfo)
+        if now < room.opens_at:
+            raise RoomNotSartedException(starting_time=room.opens_at.isoformat())
+
+        if now > room.closes_at:
+            raise RoomCloasedException(closing_time=room.closes_at.isoformat())
 
         # Check room capacity
         if len(room.members) >= 10:
@@ -134,7 +142,6 @@ class RoomService:
             (member for member in room.members if member.user_id == user_id), None
         )
 
-        print(room_member)
         # Handle private room access
         if not room.public:
             if room_member is None:
@@ -142,17 +149,14 @@ class RoomService:
             room_member.joint = True
             room_member.joined_at = datetime.now()
         else:
-            print("public room ")
             if room_member is not None:
                 # Update existing member's status instead of raising an error
                 room_member.joint = True
                 room_member.joined_at = datetime.now()
-                print("room member is not none")
             else:
                 room_member = RoomMember(
                     **room_member_data_dict, joint=True, joined_at=datetime.now()
                 )
-                print("room member created" + str(room_member))
             session.add(room_member)
 
         await session.commit()

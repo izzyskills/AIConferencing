@@ -60,6 +60,20 @@ class RoomNotFoundException(VidconfException):
     pass
 
 
+class RoomNotSartedException(VidconfException):
+    """Room has not started yet."""
+
+    def __init__(self, starting_time):
+        self.starting_time = starting_time
+
+
+class RoomCloasedException(VidconfException):
+    """Room has cloased"""
+
+    def __init__(self, closing_time):
+        self.closing_time = closing_time
+
+
 class UserNotFoundException(VidconfException):
     """User not found."""
 
@@ -101,8 +115,12 @@ def create_exception_handler(
 ) -> Callable[[Request, Exception], JSONResponse]:
 
     async def exception_handler(request: Request, exc: VidconfException):
-
-        return JSONResponse(content=initial_detail, status_code=status_code)
+        detail = initial_detail.copy()
+        if isinstance(exc, RoomNotSartedException):
+            detail["starting_time"] = exc.starting_time
+        elif isinstance(exc, RoomCloasedException):
+            detail["closing_time"] = exc.closing_time
+        return JSONResponse(content=detail, status_code=status_code)
 
     return exception_handler
 
@@ -251,6 +269,29 @@ def register_all_errors(app: FastAPI):
             initial_detail={
                 "message": "You are already a member of this room",
                 "error_code": "user_already_in_room",
+            },
+        ),
+    )
+    app.add_exception_handler(
+        RoomNotSartedException,
+        create_exception_handler(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            initial_detail={
+                "message": "Room has not started yet",
+                "error_code": "room_not_started",
+                "starting_time": None,  # This will be updated dynamically
+            },
+        ),
+    )
+
+    app.add_exception_handler(
+        RoomCloasedException,
+        create_exception_handler(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            initial_detail={
+                "message": "Room has cloased",
+                "error_code": "room_closed",
+                "closing_time": None,  # This will be updated dynamically
             },
         ),
     )
