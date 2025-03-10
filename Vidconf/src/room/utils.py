@@ -10,6 +10,9 @@ async def convert_email_to_RoomMemberModel(
     user = (await session.exec(user)).first()
     if user is None:
         return None
+    print("user", user)
+    print("room_id", room_id)
+
     return RoomMemberModel(
         room_id=room_id, user_id=user.uid, is_admin=is_admin, joint=joint
     )

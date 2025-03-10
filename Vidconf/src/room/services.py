@@ -14,13 +14,14 @@ from src.errors import (
     UserNotFoundException,
 )
 from src.room.utils import convert_email_to_RoomMemberModel
-from .schemas import CreateRoomModel, RoomMemberModel
+from .schemas import CreateRoomModel, RoomMemberModel, RoomResponseModel
 
 
 class RoomService:
     async def create_room(self, room_data: CreateRoomModel, session: AsyncSession):
         room_data_dict = room_data.model_dump(exclude={"members"})
 
+        member_emails = room_data.members or []
         # Get the user by UUID
         created_by_uuid = room_data_dict["created_by"]
         user = await session.exec(select(User).where(User.uid == created_by_uuid))
@@ -29,32 +30,29 @@ class RoomService:
             raise ValueError(f"User with UUID {created_by_uuid} not found")
 
         creator_email = user.email
+        print("creator email", creator_email)
         new_room = Room(**room_data_dict)
+
         session.add(new_room)
 
         # Convert member emails to RoomMemberModel objects
-        member_emails = room_data_dict.get("members", [])
         new_room.members = []
+        print("new_room", new_room)
 
         for email in member_emails:
             is_admin = email == creator_email
-            member = await convert_email_to_RoomMemberModel(
-                session, email, new_room.rid, is_admin=is_admin, joint=is_admin
+            member_data = await convert_email_to_RoomMemberModel(
+                session, email, None, is_admin=is_admin, joint=is_admin
             )
-            if member:
-                new_room.members.append(RoomMember(**member.model_dump()))
+            if member_data:
+                # Don't include room_id, SQLAlchemy will handle it
+                member_data_dict = member_data.model_dump(exclude={"room_id"})
+                new_room.members.append(RoomMember(**member_data_dict))
 
-        # Ensure the creator is always a member and admin
+        # Add creator if not already included
         if not any(member.user_id == user.uid for member in new_room.members):
             new_room.members.append(
-                RoomMember(
-                    **{
-                        "room_id": new_room.rid,
-                        "user_id": user.uid,
-                        "is_admin": True,
-                        "joint": True,
-                    }
-                )
+                RoomMember(user_id=user.uid, is_admin=True, joint=True)
             )
 
         await session.commit()
@@ -105,7 +103,28 @@ class RoomService:
             )
         )
         result = await session.exec(statement)
-        return result.unique().all()
+        rooms = result.unique().all()
+
+        room_responses = []
+        for room in rooms:
+            user = await session.exec(select(User).where(User.uid == room.created_by))
+            user = user.first()
+            created_by_email = user.email if user else None
+            attendees = len(room.members)
+            room_response = RoomResponseModel(
+                rid=room.rid,
+                name=room.name,
+                public=room.public,
+                in_session=room.in_session,
+                created_by=room.created_by,
+                opens_at=room.opens_at,
+                closes_at=room.closes_at,
+                created_by_email=created_by_email,
+                attendees=attendees,
+            )
+            room_responses.append(room_response)
+
+        return room_responses
 
     async def join_room(self, room_member_data: RoomMemberModel, session: AsyncSession):
         room_member_data_dict = room_member_data.model_dump()

@@ -2,6 +2,7 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 import os
 import shutil
+from typing import List
 import uuid
 from fastapi import APIRouter, Depends, File, UploadFile, WebSocket, WebSocketDisconnect
 from sqlalchemy.orm import selectinload
@@ -13,7 +14,7 @@ from src.celery_tasks import send_email
 from src.config import Config
 from src.db.main import get_session
 from src.db.models import Room
-from .schemas import RoomMemberModel, CreateRoomModel
+from .schemas import RoomMemberModel, CreateRoomModel, RoomResponseModel
 from .services import RoomService
 from src.errors import InvalidToken, UserNotFound, InvalidCredentials
 
@@ -81,7 +82,7 @@ async def upload_file(
     return {"message": "Audio uploaded successfully", "file_path": file_path}
 
 
-@room_router.get("/all")
+@room_router.get("/all", response_model=List[RoomResponseModel])
 async def get_rooms(
     token: dict = Depends(AccessTokenBearer()),
     session: AsyncSession = Depends(get_session),
@@ -91,7 +92,7 @@ async def get_rooms(
     return rooms
 
 
-@room_router.get("/future")
+@room_router.get("/future", response_model=List[RoomResponseModel])
 async def get_future_rooms(
     token: dict = Depends(AccessTokenBearer()),
     session: AsyncSession = Depends(get_session),

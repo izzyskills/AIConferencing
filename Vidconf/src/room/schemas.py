@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field
 
 
 class RoomMemberModel(BaseModel):
-    room_id: uuid.UUID
+    room_id: Optional[uuid.UUID]
     user_id: uuid.UUID
     is_admin: Optional[bool] = False
     joint: Optional[bool] = False
@@ -27,3 +27,18 @@ class CreateRoomModel(BaseModel):
 
     class Config:
         populate_by_name = True
+
+
+class RoomResponseModel(BaseModel):
+    rid: uuid.UUID
+    name: str
+    public: bool
+    in_session: bool
+    created_by: uuid.UUID
+    opens_at: datetime
+    closes_at: datetime
+    created_by_email: Optional[str]
+    attendees: int
+
+    class Config:
+        from_attributes = True
