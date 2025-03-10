@@ -33,7 +33,6 @@ import useAuth from "@/hooks/useAuth";
 const ScheduledMeetingForm = () => {
   const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [isChecked, setIsChecked] = useState(false);
   const { user } = useAuth();
   const [participants, setParticipants] = useState([user?.email || ""]);
   const [currentParticipant, setCurrentParticipant] = useState("");
@@ -86,6 +85,7 @@ const ScheduledMeetingForm = () => {
       if (new Date(values.opens_at) <= new Date()) {
         values.in_session = true;
       }
+      values.public = !!values.public;
       console.log(values);
       await createRoom.mutateAsync(values);
       setOpen(false);
@@ -96,6 +96,8 @@ const ScheduledMeetingForm = () => {
     }
   };
 
+  const isPublic = form.watch("public");
+
   return (
     <div>
       <Dialog open={open} onOpenChange={setOpen}>
@@ -105,7 +107,7 @@ const ScheduledMeetingForm = () => {
           </Button>
         </DialogTrigger>
         <DialogContent
-          className={`w-auto ${isChecked ? "md:min-w-[40rem]" : ""}`}
+          className={`w-auto ${isPublic ? "md:min-w-[50rem]" : ""}`}
         >
           <DialogHeader className="space-y-1">
             <DialogTitle className="text-2xl">Create a Meeting</DialogTitle>
@@ -119,7 +121,7 @@ const ScheduledMeetingForm = () => {
                 onSubmit={form.handleSubmit(onSubmit)}
                 className="grid gap-4"
               >
-                <div className={isChecked ? "grid md:grid-cols-2 gap-2" : ""}>
+                <div className={isPublic ? "grid md:grid-cols-2 gap-2" : ""}>
                   <div className="grid gap-4">
                     <FormField
                       control={form.control}
@@ -162,11 +164,8 @@ const ScheduledMeetingForm = () => {
                         <FormItem className="flex flex-row items-start gap-x-3 space-y-0 rounded-md border p-4 shadow mt-4">
                           <FormControl>
                             <Checkbox
-                              checked={isChecked}
-                              onCheckedChange={(value) => {
-                                setIsChecked(value);
-                                field.onChange(value);
-                              }}
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
                               disabled={isLoading}
                             />
                           </FormControl>
@@ -181,7 +180,7 @@ const ScheduledMeetingForm = () => {
                       )}
                     />
                   </div>
-                  {isChecked && (
+                  {isPublic && (
                     <div className="md:mt-8">
                       <Separator className="md:hidden my-4" />
                       <div className="space-y-4">
@@ -206,7 +205,7 @@ const ScheduledMeetingForm = () => {
                       </div>
                       <Separator className="my-4" />
                       <div className="flex space-x-2">
-                        <div className="flex flex-col">
+                        <div className="flex  w-full flex-col">
                           <Input
                             value={currentParticipant}
                             onChange={(e) =>
@@ -239,7 +238,7 @@ const ScheduledMeetingForm = () => {
                 </div>
                 <Button
                   type="submit"
-                  disabled={(isChecked && participants.length < 1) || isLoading}
+                  disabled={(isPublic && participants.length < 2) || isLoading}
                 >
                   {isLoading ? "Creating Meeting..." : "Create Meeting"}
                 </Button>

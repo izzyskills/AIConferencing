@@ -14,12 +14,12 @@ const ProcessCard = () => {
           {/* Section header */}
           <div className="text-center max-w-4xl md:pb-20 mx-auto pb-12">
             <h2 className="font-red-hat-display mb-4 text-4xl">
-              Build and style every element to perfection
+              Enhance Your Meetings with AI
             </h2>
             <p className="text-gray-600 text-xl dark:text-stone-400">
-              Duis aute irure dolor in reprehenderit in voluptate velit esse
-              cillum dolore eu fugiat nulla pariatur excepteur sint occaecat
-              cupidatat.
+              Our AI-driven video conferencing platform provides meeting
+              summaries, transcriptions, and an AI assistant to make your
+              meetings more efficient and productive.
             </p>
           </div>
           {/* Glow illustration */}

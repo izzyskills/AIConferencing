@@ -16,7 +16,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
       <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
         <QueryClientProvider client={queryClient}>
           <Toaster duration={5 * 1000} position="bottom-right" richColors />
-          <RouterProvider router={App} /> <ReactQueryDevtools />
+          <RouterProvider router={App} />
         </QueryClientProvider>
       </ThemeProvider>
     </AuthProvider>

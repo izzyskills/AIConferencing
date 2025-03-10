@@ -1,10 +1,9 @@
 import React from "react";
 
 const items = [
-  { value: "2.4M", description: "Days turn around", delay: "0" },
-  { value: "7M", description: "Days turn around", delay: "100" },
-  { value: "7.4%", description: "Days turn around", delay: "200" },
-  { value: "49K", description: "Days turn around", delay: "300" },
+  { value: "10%", description: "Time saved", delay: "0" },
+  { value: "99%", description: "Accurate transcriptions", delay: "100" },
+  { value: "24/7", description: "AI assistance", delay: "200" },
 ];
 
 const StatsCard = () => {
@@ -19,7 +18,7 @@ const StatsCard = () => {
       <div className="max-w-7xl relative px-6 mx-auto">
         <div className="pb-20">
           <div
-            className="grid md:grid-cols-4 grid-cols-2 text-center gap-6"
+            className="grid md:grid-cols-3 grid-cols-2 text-center gap-6"
             data-aos-id-stats=""
           >
             {items.map((item, index) => (

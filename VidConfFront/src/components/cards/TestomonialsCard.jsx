@@ -6,7 +6,7 @@ const testimonials = [
     imgSrc: "/images/testimonial-01.jpg",
     alt: "Testimonial 01",
     quote:
-      "This is a great app and the value is amazing. Since I purchased it I have been using it everyday! Highly recommend it.",
+      "The AI-driven meeting summaries have saved us so much time. We can now focus on what really matters.",
     name: "Andy Croll",
     company: "Appy.com",
   },
@@ -15,7 +15,7 @@ const testimonials = [
     imgSrc: "/images/testimonial-02.jpg",
     alt: "Testimonial 02",
     quote:
-      "This is a great app and the value is amazing. Since I purchased it I have been using it everyday! Highly recommend it.",
+      "Real-time transcriptions are a game-changer. Our meetings are more efficient and productive.",
     name: "Patricia Lepisov",
     company: "Nobi Bank",
   },
@@ -24,7 +24,7 @@ const testimonials = [
     imgSrc: "/images/testimonial-03.jpg",
     alt: "Testimonial 03",
     quote:
-      "This is a great app and the value is amazing. Since I purchased it I have been using it everyday! Highly recommend it.",
+      "The AI assistant is incredibly helpful. It feels like having an extra team member in every meeting.",
     name: "Zhenya Ritz",
     company: "Sync",
   },
@@ -33,7 +33,7 @@ const testimonials = [
     imgSrc: "/images/testimonial-04.jpg",
     alt: "Testimonial 04",
     quote:
-      "This is a great app and the value is amazing. Since I purchased it I have been using it everyday! Highly recommend it.",
+      "This platform has transformed the way we conduct meetings. The AI features are simply amazing.",
     name: "Lisa Champ",
     company: "Appicu",
   },

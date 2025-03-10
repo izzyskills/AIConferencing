@@ -3,6 +3,7 @@ import RequireAuth from "./pages/RequireAuth";
 import { createBrowserRouter } from "react-router-dom";
 import { lazy, Suspense } from "react";
 import Navbar from "./components/Navbar";
+import AboutView from "./pages/AboutView";
 const LandingView = lazy(() => import("./pages/LandingView"));
 const SignupView = lazy(() => import("./pages/SignupView"));
 const LoginView = lazy(() => import("./pages/LoginView"));
@@ -27,6 +28,14 @@ const App = createBrowserRouter([
     element: (
       <SuspenseWrapper>
         <LandingView />
+      </SuspenseWrapper>
+    ),
+  },
+  {
+    path: "/about",
+    element: (
+      <SuspenseWrapper>
+        <AboutView />
       </SuspenseWrapper>
     ),
   },

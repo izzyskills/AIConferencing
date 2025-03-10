@@ -2,10 +2,9 @@ import React, { useState } from "react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Link } from "react-router-dom";
+import { ChevronRightCircle } from "lucide-react";
 
 const HeroCard = () => {
-  const [modalExpanded, setModalExpanded] = useState(false);
-
   return (
     <div>
       <section>
@@ -19,36 +18,23 @@ const HeroCard = () => {
                   className="font-red-hat-display lg:text-[5.5rem] leading-[1.11] font-black mb-4 md:text-[4-rem] text-[3.5rem] aos-init aos-animate"
                   data-aos="fade-down"
                 >
-                  Video Conferencing, reimagined
+                  AI-Driven Video Conferencing
                 </h1>
                 <p
-                  className="text-gray-600 dark:text-neutral-100 text-xl aaos-init aos-animate"
+                  className="text-gray-600 dark:text-neutral-100 text-xl aos-init aos-animate"
                   data-aos="fade-down"
                   data-aos-delay="150"
                 >
-                  Our landing page template works on all devices, so you only
-                  have to set it up once, and get beautiful results forever.
+                  Our platform provides meeting summaries, transcriptions, and
+                  an AI assistant to enhance your meetings.
                 </p>
                 {/* CTA form */}
-                <form
-                  className="mt-8 aos-init aos-animate"
-                  data-aos="fade-down"
-                  data-aos-delay="300"
-                >
-                  <div className="justify-center max-w-lg sm:flex-row sm:max-w-md flex-col md:mx-0 mx-auto flex">
-                    <Input
-                      aria-label="Phone number"
-                      className="md:mb-0 mr-2 w-full mb-2"
-                      placeholder="Phone number"
-                      type="tel"
-                    />
-                    <Button>
-                      <Link to="#0"> Request code </Link>
-                    </Button>
-                  </div>
-                  {/* Success message */}
-                  {/* <p className="text-center md:text-left mt-2 opacity-75 text-sm">Thanks for subscribing!</p> */}
-                </form>
+                <Button className="w-full md:min-w-40 sm:w-auto mt-2">
+                  <Link to="/signup"> Sign up </Link>
+                  <ChevronRightCircle className="w-6 h-6 ml-2" />
+                </Button>
+                {/* Success message */}
+                {/* <p className="text-center md:text-left mt-2 opacity-75 text-sm">Thanks for subscribing!</p> */}
                 <ul
                   className="text-gray-600 c0atf md:max-w-none max-w-lg sm:max-w-md mx-auto mb-[-2] mt-8 aos-init aos-animate"
                   data-aos="fade-down"
@@ -62,7 +48,7 @@ const HeroCard = () => {
                     >
                       <path d="M10.28 2.28L3.989 8.575 1.695 6.28A1 1 0 00.28 7.695l3 3a1 1 0 001.414 0l7-7A1 1 0 0010.28 2.28z"></path>
                     </svg>
-                    <span> Lorem ipsum is placeholder text commonly. </span>
+                    <span> AI-driven meeting summaries. </span>
                   </li>
                   <li className="items-center mb-2 flex">
                     <svg
@@ -72,7 +58,7 @@ const HeroCard = () => {
                     >
                       <path d="M10.28 2.28L3.989 8.575 1.695 6.28A1 1 0 00.28 7.695l3 3a1 1 0 001.414 0l7-7A1 1 0 0010.28 2.28z"></path>
                     </svg>
-                    <span> Excepteur sint occaecat cupidatat. </span>
+                    <span> Real-time transcriptions. </span>
                   </li>
                   <li className="items-center mb-2 flex">
                     <svg
@@ -80,9 +66,9 @@ const HeroCard = () => {
                       viewBox="0 0 12 12"
                       xmlns="http://www.w3.org/2000/svg"
                     >
-                      <path d="M10.28 2.28L3.989 8.575 1.695 6.28A1 1 0 00.28 7.695l3 3a1 1 0 001.414 0l7-7A1 1 0 0010.28 2.28z"></path>
+                      <path d="M10.28 2.28L3.989 8.575 1.695 6.28A1 1 0 00.28 7.695l3 3a 1 1 0 001.414 0l7-7A1 1 0 0010.28 2.28z"></path>
                     </svg>
-                    <span> Lorem ipsum is placeholder text commonly. </span>
+                    <span> AI assistant for meetings. </span>
                   </li>
                 </ul>
               </div>
@@ -168,66 +154,7 @@ const HeroCard = () => {
                     src="/images/iphone-mockup.png"
                     width="344"
                   />
-                  {/* Play button */}
-                  <a
-                    onClick={(e) => {
-                      e.preventDefault();
-                      setModalExpanded(true);
-                    }}
-                    aria-controls="modal"
-                    className="cmemh duration-150 ease-in-out transition absolute"
-                    href="#0"
-                  >
-                    <img
-                      alt="Play"
-                      height="96"
-                      src="/images/play-button.svg"
-                      width="96"
-                    />
-                  </a>
                 </div>
-                {/* Modal backdrop */}
-                {modalExpanded && (
-                  <div
-                    aria-hidden="true"
-                    className="transition bg-black bg-opacity-75 inset-0 fixed z-50 opacity-0"
-                    style={{ display: "block" }}
-                  ></div>
-                )}
-
-                {/* Modal dialog */}
-                {modalExpanded && (
-                  <div
-                    aria-labelledby="modal-headline"
-                    aria-modal="true"
-                    className="overflow-hidden justify-center items-center transform px-4 inset-0 fixed z-50 flex"
-                    id="modal"
-                    role="dialog"
-                    style={{ display: "block" }}
-                  >
-                    <div
-                      onClick={() => setModalExpanded(false)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Escape") setModalExpanded(false);
-                      }}
-                      className="overflow-auto max-h-full max-w-7xl bg-white w-full"
-                    >
-                      <div className="relative pb-[56.25%]">
-                        <video
-                          className="absolute h-full w-full"
-                          controls
-                          height="1080"
-                          loop
-                          width="1920"
-                          autoPlay
-                        >
-                          <source src="./videos/video.mp4" type="video/mp4" />
-                          Your browser does not support the video tag.
-                        </video>
-                      </div>
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
           </div>

@@ -64,11 +64,8 @@ const LandingView = () => {
       </div>
       <HeroCard />
       <StatsCard />
-      <CarouselCard />
-      <TabCard />
       <ProcessCard />
       <TestimonialsCard />
-      <FeaturesCard />
       <Footer />
     </div>
   );

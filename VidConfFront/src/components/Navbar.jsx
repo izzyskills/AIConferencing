@@ -3,8 +3,8 @@ import { Sheet, SheetTrigger, SheetContent } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate } from "react-router-dom";
 import DarkMode from "@/components/DarkMode";
-import { useLogout } from "@/adapters/Requests";
 import useAuth from "@/hooks/useAuth";
+import { useLogout } from "@/adapters/Requests";
 
 const Navbar = () => {
   const { isLoggedIn } = useAuth();
@@ -90,7 +90,7 @@ const Navbar = () => {
                 Home
               </Link>
               <Link
-                to="#"
+                to="/about"
                 className="flex w-full items-center py-2 text-lg font-semibold"
               >
                 About
@@ -139,7 +139,7 @@ const Navbar = () => {
             Home
           </Link>
           <Link
-            to="#"
+            to="/about"
             className="group inline-flex h-9 w-max items-center justify-center rounded-md px-4 py-2 text-sm font-medium transition-colors hover:bg-popover hover:text-popover-foreground focus:bg-popover focus:text-popover-foreground data-[active]:bg-accent-foreground/50 data-[state=open]:bg-accent-foreground/50"
           >
             About

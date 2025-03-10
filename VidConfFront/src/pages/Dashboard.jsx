@@ -141,7 +141,7 @@ const DashboardView = () => {
       <div className="flex justify-between items-center mb-4">
         <div className="flex flex-col lg:flex-row space-x-0 space-y-2 lg:space-x-2 lg:space-y-0">
           <ScheduledMeetingForm />
-          <JoinMeetingForm />
+          {/* <JoinMeetingForm /> */}
         </div>
         <div className="flex flex-col md:flex-row gap-2">
           <Input
@@ -186,11 +186,11 @@ const DashboardView = () => {
               <span>{meeting.name}</span>
               <Badge variant={meeting.public ? "secondary" : "outline"}>
                 {meeting.public ? (
-                  <Lock className="h-3 w-3 mr-1" />
-                ) : (
                   <Unlock className="h-3 w-3 mr-1" />
+                ) : (
+                  <Lock className="h-3 w-3 mr-1" />
                 )}
-                {meeting.public ? "Private" : "Public"}
+                {meeting.public ? "Public" : "Private"}
               </Badge>
             </CardTitle>
           </CardHeader>
@@ -198,7 +198,7 @@ const DashboardView = () => {
             <p>
               Date: {format(parseISO(meeting.opens_at), "MMMM d, yyyy HH:mm")}
             </p>
-            <p>Host: {meeting.created_by}</p>
+            <p>Host: {meeting.created_by_email}</p>
             <p>
               <Users className="inline mr-2 h-4 w-4" />
               {meeting.attendees} known attendees
