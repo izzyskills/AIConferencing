@@ -9,12 +9,12 @@ from .middleware import register_middleware
 version = "v1"
 
 description = """
-A REST API for a book review web service.
+A REST API for a video conferencing web service.
 
 This REST API is able to;
-- Create Read Update And delete books
-- Add reviews to books
-- Add tags to Books e.t.c.
+- Create and Authenticate Users
+- Create Roooms
+- manage and store user tokens e.t.c.
     """
 
 version_prefix = f"/api/{version}"

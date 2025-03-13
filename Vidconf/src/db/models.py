@@ -69,8 +69,9 @@ class MeetingExtracts(SQLModel, table=True):
         sa_column=Column(pg.UUID, nullable=False, primary_key=True, default=uuid.uuid4)
     )
     room_id: uuid.UUID = Field(foreign_key="room.rid", primary_key=True)
-    transcript_link: str
-    summary_link: str
+    transcript_link: Optional[str] = None  # Optional field for transcript link
+    summary_link: Optional[str] = None  # Optional field for summary link
+    file_path: str  # Field for file path
     created_at: datetime = Field(sa_column=Column(pg.TIMESTAMP, default=datetime.now))
     update_at: datetime = Field(sa_column=Column(pg.TIMESTAMP, default=datetime.now))
     room: Room = Relationship(back_populates="extracts")

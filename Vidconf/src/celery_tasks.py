@@ -4,9 +4,10 @@ import logging
 from sqlmodel import update
 from celery import Celery
 from src.db.main import get_session
-from src.db.models import Room
+from src.db.models import MeetingExtracts, Room
 from src.mail import mail, create_message
 from asgiref.sync import async_to_sync
+import assemblyai as aai
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -42,6 +43,53 @@ def check_email_status(task_id):
         "status": task_result.status,
         "result": task_result.result,
     }
+
+
+@c_app.task(bind=True, max_retries=3)
+def transcribe_and_summarize_audio(
+    self, file_path: str, extract_id: str, recipients: list[str], is_admin: bool
+):
+    try:
+        # Step 1: Transcribe the audio file
+        transcriber = aai.Transcriber()
+        transcript = transcriber.transcribe(file_path)
+
+        # Step 2: Define a summarization prompt
+        prompt = "Provide a brief summary of the transcript."
+
+        # Step 3: Apply LeMUR
+        result = transcript.lemur.task(
+            prompt, final_model=aai.LemurModel.claude3_5_sonnet
+        )
+        summary = result.response
+
+        # Update the MeetingExtracts table with the transcript and summary links
+        extract = session.get(MeetingExtracts, extract_id)
+        extract.transcript_link = transcript.text
+        extract.summary_link = summary
+        session.add(extract)
+        session.commit()
+
+        # Prepare email content
+        email_subject = "Meeting Transcript and Summary"
+        email_body = f"Summary:\n{summary}"
+        if is_admin:
+            email_body += f"\n\nFull Transcript:\n{transcript.text}"
+
+        # Send email
+        send_email.delay(recipients, email_subject, email_body)
+
+        logger.info(f"Transcription and summarization completed for file {file_path}")
+        return {
+            "status": "success",
+            "message": f"Transcription and summarization completed for file {file_path}",
+            "task_id": self.request.id,
+        }
+    except Exception as e:
+        logger.error(
+            f"Failed to transcribe and summarize audio file {file_path}. Error: {str(e)}"
+        )
+        self.retry(exc=e, countdown=60)
 
 
 # Celery task for room state updates

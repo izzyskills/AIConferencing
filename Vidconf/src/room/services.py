@@ -174,7 +174,13 @@ class RoomService:
                 room_member.joined_at = datetime.now()
             else:
                 room_member = RoomMember(
-                    **room_member_data_dict, joint=True, joined_at=datetime.now()
+                    user_id=user_id,
+                    room_id=room.rid,
+                    is_admin=room_member_data_dict["is_admin"],
+                    joint=True,
+                    joined_at=datetime.now(),
+                    created_at=datetime.now(),
+                    update_at=datetime.now(),
                 )
             session.add(room_member)
 

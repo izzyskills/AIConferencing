@@ -5,18 +5,20 @@ import shutil
 from typing import List
 import uuid
 from fastapi import APIRouter, Depends, File, UploadFile, WebSocket, WebSocketDisconnect
+from fastapi.exceptions import HTTPException
 from sqlalchemy.orm import selectinload
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.auth.dependencies import AccessTokenBearer
 from src.auth.schemas import EmailModel
-from src.celery_tasks import send_email
+from src.celery_tasks import send_email, transcribe_and_summarize_audio
 from src.config import Config
 from src.db.main import get_session
-from src.db.models import Room
+from src.db.models import MeetingExtracts, Room, RoomMember
 from .schemas import RoomMemberModel, CreateRoomModel, RoomResponseModel
 from .services import RoomService
 from src.errors import InvalidToken, UserNotFound, InvalidCredentials
+import stream_chat
 
 room_router = APIRouter()
 room_service = RoomService()
@@ -75,9 +77,32 @@ async def upload_file(
     token: dict = Depends(AccessTokenBearer()),
     session: AsyncSession = Depends(get_session),
 ):
-    file_path = os.path.join(AUDIO_SAVE_PATH, file.filename)
+    # Generate unique filename
+    date_str = datetime.now().strftime("%Y%m%d%H%M%S")
+    unique_filename = f"{rid}_{date_str}_{file.filename}"
+    file_path = os.path.join(AUDIO_SAVE_PATH, unique_filename)
+
+    # Save the file
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
+
+    # Add entry to MeetingExtracts table
+    new_extract = MeetingExtracts(
+        room_id=rid,
+        file_path=file_path,
+        created_at=datetime.now(),
+        update_at=datetime.now(),
+    )
+    session.add(new_extract)
+    await session.commit()
+    result = await session.exec(select(RoomMember).where(RoomMember.room_id == rid))
+    members = result.all()
+    recipients = [m.user.email for m in members if hasattr(m, "user") and m.user.email]
+
+    # Trigger Celery task
+    transcribe_and_summarize_audio.delay(
+        file_path, str(new_extract.id), recipients, is_admin=True
+    )
 
     return {"message": "Audio uploaded successfully", "file_path": file_path}
 
@@ -102,142 +127,69 @@ async def get_future_rooms(
     return rooms
 
 
-# Add to your FastAPI routes
-
-
-class ConnectionManager:
-    def __init__(self):
-        self.active_connections = {}
-        self.room_connections = defaultdict(dict)
-        self.usernames = {}
-
-    async def connect(
-        self, websocket: WebSocket, room_id: str, user_id: str, user_name: str
-    ):
-        await websocket.accept()
-        self.active_connections[user_id] = websocket
-        self.room_connections[room_id][user_id] = websocket
-        self.usernames[user_id] = user_name
-
-    def disconnect(self, room_id: str, user_id: str):
-        if user_id in self.active_connections:
-            del self.active_connections[user_id]
-        if (
-            room_id in self.room_connections
-            and user_id in self.room_connections[room_id]
-        ):
-            del self.room_connections[room_id][user_id]
-        if user_id in self.usernames:
-            del self.usernames[user_id]
-
-    async def send_personal_message(self, message: dict, user_id: str):
-        if websocket := self.active_connections.get(user_id):
-            await websocket.send_json(message)
-
-    async def broadcast(self, message: dict, room_id: str, exclude_user: str = None):
-        for uid, websocket in self.room_connections[room_id].items():
-            if uid != exclude_user:
-                await websocket.send_json(message)
-
-
-manager = ConnectionManager()
-
-
-@room_router.websocket("/ws/{room_id}/{user_id}")
-async def websocket_endpoint(
-    websocket: WebSocket,
-    room_id: str,
-    user_id: str,
-    username: str,
+@room_router.post("/call/start")
+async def start_call(
+    room_id: uuid.UUID,
+    token: dict = Depends(AccessTokenBearer()),
     session: AsyncSession = Depends(get_session),
 ):
-    await manager.connect(websocket, room_id, user_id, username)
-    # Validate room access
-    result = await session.exec(
-        select(Room).options(selectinload(Room.members)).where(Room.rid == room_id)
-    )
-    room = result.first()
+    # 1. Fetch the room
+    room = await session.get(Room, room_id)
     if not room:
-        await websocket.close(code=4404)
-        return
+        raise HTTPException(status_code=404, detail="Room not found")
 
-    # Check room schedule
-
-    now = datetime.now().astimezone(room.opens_at.tzinfo)
+    now = datetime.now()
+    # 2. Check timing
     if now < room.opens_at:
-        await websocket.send_json(
-            {"type": "error", "message": f"Room opens at {room.opens_at.isoformat()}"}
-        )
-        await websocket.close(code=4423)
-        return
-
+        raise HTTPException(status_code=400, detail="Call cannot be started yet")
     if now > room.closes_at:
-        await websocket.send_json(
-            {"type": "error", "message": f"Room closed at {room.closes_at.isoformat()}"}
-        )
-        await websocket.close(code=4410)
-        return
-    admin_present = any(
-        member.is_admin
-        for member in room.members
-        if str(member.user_id) in list(manager.active_connections.keys())
-    )
-    if not admin_present and user_id != str(room.created_by):
-        await websocket.send_json(
-            {"type": "error", "message": "Admin is not present in the room"}
-        )
-        await websocket.close(code=4411)
-        return
+        raise HTTPException(status_code=400, detail="Call has already ended")
 
-    is_admin = user_id == str(room.created_by)
-    await websocket.send_json({"type": "admin-info", "isAdmin": is_admin})
-
-    current_users = [
-        {"userId": uid, "username": manager.usernames[uid]}
-        for uid in manager.room_connections[room_id].keys()
-    ]
-    await websocket.send_json({"type": "current-users", "users": current_users})
-
-    try:
-        await manager.broadcast(
-            {"type": "user-joined", "userId": user_id, "username": username},
-            room_id,
-            exclude_user=user_id,
-        )
-
-        while True:
-            data = await websocket.receive_json()
-            if data["type"] == "offer":
-                await manager.send_personal_message(
-                    {"type": "offer", "sender": user_id, "offer": data["offer"]},
-                    data["target"],
-                )
-
-            elif data["type"] == "answer":
-                await manager.send_personal_message(
-                    {"type": "answer", "sender": user_id, "answer": data["answer"]},
-                    data["target"],
-                )
-
-            elif data["type"] == "ice-candidate":
-                await manager.send_personal_message(
-                    {
-                        "type": "ice-candidate",
-                        "sender": user_id,
-                        "candidate": data["candidate"],
-                    },
-                    data["target"],
-                )
-
-    except WebSocketDisconnect:
-        manager.disconnect(room_id, user_id)
-        await manager.broadcast({"type": "user-left", "userId": user_id}, room_id)
-
-        if user_id == str(room.created_by):
-            await manager.broadcast(
-                {type: "admin-left", "message": "Admin left the room. Closing room."},
-                room_id,
+    # 3. If the room is private, verify the requester is allowed to join.
+    if not room.public:
+        result = await session.execute(
+            select(RoomMember).where(
+                RoomMember.room_id == room_id,
+                RoomMember.user_id == token["user"]["user_uid"],
             )
-            for uid in list(manager.room_connections[room_id].keys()):
-                await manager.active_connections[uid].close(code=4412)
-            del manager.room_connections[room_id]
+        )
+        member = result.scalar_one_or_none()
+        if not member:
+            raise HTTPException(
+                status_code=403, detail="You are not allowed to join this call"
+            )
+
+    # 4. Create call token using Stream's server SDK.
+    try:
+        stream_client = stream_chat.StreamChat(
+            api_key=Config.STREAM_API_KEY, api_secret=Config.STREAM_SECRET
+        )
+        # Here you create a token for the user (for actual call creation,
+        # you may need to call additional APIs provided by Stream Video)
+        call_token = stream_client.create_token(str(token["user"]["user_uid"]))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Stream API error: {str(e)}")
+
+    # 5. Mark the room as in session
+    room.in_session = True
+    session.add(room)
+    await session.commit()
+
+    # 6. Gather allowed participants’ emails for notifications.
+    result = await session.exec(select(RoomMember).where(RoomMember.room_id == room_id))
+    allowed_members = result.all()
+    # This assumes that the RoomMember has a "user" relationship that loads the user’s email.
+    emails = [
+        member.user.email
+        for member in allowed_members
+        if hasattr(member, "user") and member.user.email
+    ]
+
+    # 7. Trigger a Celery task to send notifications.
+    send_email.delay(
+        emails,
+        "Call Started",
+        f"The call for room '{room.name}' has started. Join now using the app.",
+    )
+
+    return {"status": "success", "call_token": call_token, "room_id": str(room_id)}
