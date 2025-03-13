@@ -4,6 +4,7 @@ import { createBrowserRouter } from "react-router-dom";
 import { lazy, Suspense } from "react";
 import Navbar from "./components/Navbar";
 import AboutView from "./pages/AboutView";
+import Footer from "./components/Footer";
 const LandingView = lazy(() => import("./pages/LandingView"));
 const SignupView = lazy(() => import("./pages/SignupView"));
 const LoginView = lazy(() => import("./pages/LoginView"));
@@ -17,6 +18,7 @@ const SuspenseWrapper = ({ children }) => (
     <div className="overflow-hidden min-h-screen flex-col flex">
       <Navbar />
       {children}
+      <Footer />
     </div>
   </Suspense>
 );

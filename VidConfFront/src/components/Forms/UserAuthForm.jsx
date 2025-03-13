@@ -14,18 +14,33 @@ import {
   Form,
 } from "../ui/form";
 import { useSignup } from "@/adapters/Requests";
+import { Link } from "react-router-dom";
 
 const UserAuthForm = () => {
   const [isLoading, setIsLoading] = useState(false);
   const signup = useSignup();
   const form = useForm({
     resolver: zodResolver(signup_schema),
+    defaultValues: {
+      firstname: "",
+      lastname: "",
+      email: "",
+      password: "",
+      confirmPassword: "",
+    },
   });
 
   const onSubmit = async (values) => {
     try {
       setIsLoading(true);
-      await signup.mutateAsync(values);
+      const data = {
+        first_name: values.firstname,
+        last_name: values.lastname,
+        email: values.email,
+        password: values.password,
+      };
+
+      await signup.mutateAsync(data);
     } catch (error) {
       console.error(error);
     } finally {
@@ -46,7 +61,7 @@ const UserAuthForm = () => {
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
             <FormField
               control={form.control}
-              name="first_name"
+              name="firstname"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>First Name</FormLabel>
@@ -64,7 +79,7 @@ const UserAuthForm = () => {
             />
             <FormField
               control={form.control}
-              name="last_name"
+              name="lastname"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Last Name</FormLabel>
@@ -121,7 +136,7 @@ const UserAuthForm = () => {
             />
             <FormField
               control={form.control}
-              name="password_confirmation"
+              name="passwordConfirmation"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Confirm Password</FormLabel>
@@ -148,6 +163,12 @@ const UserAuthForm = () => {
           </form>
         </Form>
 
+        <div className="text-center text-sm">
+          Don&apos;t have an account?{" "}
+          <Link to="/login" className="underline underline-offset-4">
+            Log in
+          </Link>
+        </div>
         <div className="hidden">
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
@@ -175,6 +196,7 @@ const UserAuthForm = () => {
             </Button>
           </div>
         </div>
+
         <p className="px-8 text-center text-sm text-muted-foreground">
           By clicking continue, you agree to our{" "}
           <a

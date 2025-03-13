@@ -139,10 +139,9 @@ const HeroCard = () => {
                   {/* Image inside mockup size: 290x624px (or 580x1248px for Retina devices) */}
                   <img
                     alt="Features illustration"
-                    className="absolute rounded-[40px]"
-                    height="624"
-                    src="/images/mockup-image-01.jpg"
-                    style={{ maxWidth: "84.33%" }}
+                    className="absolute "
+                    height="674"
+                    src="/images/mockup-image-01.png"
                     width="290"
                   />
                   {/* iPhone mockup */}

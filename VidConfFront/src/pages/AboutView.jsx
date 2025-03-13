@@ -1,33 +1,35 @@
 import React from "react";
 import Footer from "@/components/Footer";
+import israelPic from "../assets/israelpic.png";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const teamMembers = [
   {
     id: 1,
-    imgSrc: "/images/team-member-01.jpg",
+    imgSrc: israelPic,
     alt: "Team Member 01",
-    name: "Alice Johnson",
+    name: "Israel",
     role: "CEO & Founder",
     description:
-      "Alice is the visionary behind our platform, leading the team with her expertise in AI and video conferencing technologies.",
+      "Israel is the visionary behind our platform, leading the team with his expertise in AI and video conferencing technologies.",
   },
   {
     id: 2,
     imgSrc: "/images/team-member-02.jpg",
     alt: "Team Member 02",
-    name: "Bob Smith",
+    name: "Uturu Favour",
     role: "CTO",
     description:
-      "Bob is the technical genius who ensures our platform runs smoothly and efficiently, constantly innovating and improving our technology.",
+      "Favour is the technical genius who ensures our platform runs smoothly and efficiently, constantly innovating and improving our technology.",
   },
   {
     id: 3,
     imgSrc: "/images/team-member-03.jpg",
     alt: "Team Member 03",
-    name: "Charlie Davis",
+    name: "Omojoye Ayo",
     role: "COO",
     description:
-      "Charlie oversees the day-to-day operations, making sure everything is on track and our users are happy.",
+      "Ayo oversees the day-to-day operations, making sure everything is on track and our users are happy.",
   },
 ];
 
@@ -129,13 +131,10 @@ const AboutView = () => {
               <div className="grid md:grid-cols-3 grid-cols-1 gap-8">
                 {teamMembers.map((member) => (
                   <div key={member.id} className="text-center">
-                    <img
-                      alt={member.alt}
-                      className="rounded-full mx-auto mb-4"
-                      height="150"
-                      src={member.imgSrc}
-                      width="150"
-                    />
+                    <Avatar className="mx-auto mb-4 w-40 h-40">
+                      <AvatarImage src={member.imgSrc} alt={member.alt} />
+                      <AvatarFallback>{member.name}</AvatarFallback>
+                    </Avatar>
                     <h3 className="font-red-hat-display text-xl font-bold mb-2">
                       {member.name}
                     </h3>
@@ -205,7 +204,6 @@ const AboutView = () => {
           </div>
         </div>
       </section>
-      <Footer />
     </div>
   );
 };

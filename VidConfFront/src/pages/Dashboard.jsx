@@ -27,6 +27,7 @@ import {
   PaginationItem,
   PaginationPrevious,
   PaginationNext,
+  PaginationLink,
 } from "@/components/ui/pagination";
 import ScheduledMeetingForm from "@/components/Forms/ScheduledMeetingForm";
 import JoinMeetingForm from "@/components/Forms/JoinMeetingForm";
@@ -44,7 +45,7 @@ const DashboardView = () => {
   const [searchTerm, setSearchTerm] = useState("");
 
   const getRooms = useGetRooms();
-  const { getUser } = useAuth();
+  const { user } = useAuth();
 
   const filteredMeetings = useMemo(() => {
     return getRooms?.data
@@ -52,14 +53,14 @@ const DashboardView = () => {
       .filter(
         (meeting) =>
           filterHost === "all" ||
-          (filterHost === "you" && meeting.created_by === getUser?.user_uid) ||
-          (filterHost === "others" && meeting.created_by !== getUser?.user_uid),
+          (filterHost === "you" && meeting.created_by === user?.user_uid) ||
+          (filterHost === "others" && meeting.created_by !== user?.user_uid),
       )
       .filter(
         (meeting) =>
           filterPrivacy === "all" ||
-          (filterPrivacy === "private" && meeting.public) ||
-          (filterPrivacy === "public" && !meeting.public),
+          (filterPrivacy === "private" && !meeting.public) || // FIXED: private means !public
+          (filterPrivacy === "public" && meeting.public), // FIXED: public means public
       )
       .filter((meeting) =>
         meeting.name.toLowerCase().includes(searchTerm.toLowerCase()),
@@ -68,7 +69,7 @@ const DashboardView = () => {
         (a, b) =>
           new Date(a.opens_at).getTime() - new Date(b.opens_at).getTime(),
       );
-  }, [getRooms?.data, filterHost, filterPrivacy, searchTerm, getUser]);
+  }, [getRooms?.data, filterHost, filterPrivacy, searchTerm, user]);
 
   const totalPages = useMemo(
     () => Math.ceil((filteredMeetings?.length || 0) / ITEMS_PER_PAGE),
@@ -135,9 +136,7 @@ const DashboardView = () => {
           ))}
         </div>
       )}
-
       <h1 className="text-2xl font-bold mb-4">Meeting Dashboard</h1>
-
       <div className="flex justify-between items-center mb-4">
         <div className="flex flex-col lg:flex-row space-x-0 space-y-2 lg:space-x-2 lg:space-y-0">
           <ScheduledMeetingForm />
@@ -172,19 +171,17 @@ const DashboardView = () => {
           </Select>
         </div>
       </div>
-
       {paginatedMeetings?.length === 0 && (
         <div className="text-center text-6xl text-primary/60 mt-20">
           You have no scheduled meetings
         </div>
       )}
-
       {paginatedMeetings?.map((meeting) => (
         <Card key={meeting.rid} className="mb-4">
           <CardHeader>
             <CardTitle className="flex justify-between items-center">
               <span>{meeting.name}</span>
-              <Badge variant={meeting.public ? "secondary" : "outline"}>
+              <Badge variant={meeting.public ? "outline" : "secondary"}>
                 {meeting.public ? (
                   <Unlock className="h-3 w-3 mr-1" />
                 ) : (
@@ -198,7 +195,12 @@ const DashboardView = () => {
             <p>
               Date: {format(parseISO(meeting.opens_at), "MMMM d, yyyy HH:mm")}
             </p>
-            <p>Host: {meeting.created_by_email}</p>
+            <p>
+              Host:{" "}
+              {user.user_uid === meeting.created_by
+                ? "You"
+                : `${meeting.created_by_email}`}
+            </p>
             <p>
               <Users className="inline mr-2 h-4 w-4" />
               {meeting.attendees} known attendees
@@ -206,66 +208,77 @@ const DashboardView = () => {
           </CardContent>
         </Card>
       ))}
-
       {filteredMeetings?.length > ITEMS_PER_PAGE && (
-        <Pagination
-          total={filteredMeetings.length}
-          siblingCount={1}
-          itemsPerPage={ITEMS_PER_PAGE}
-          showEdges
-          defaultPage={currentPage}
-          className="flex justify-center mx-auto"
-        >
-          <PaginationContent className="flex items-center gap-1">
-            {({ items }) => (
-              <>
-                <PaginationItem onClick={() => handlePageChange(1)}>
-                  <ChevronLeft />
-                </PaginationItem>
-                <PaginationPrevious
-                  onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
-                  disabled={currentPage === 1}
-                />
+        <Pagination className="flex justify-center mx-auto">
+          <PaginationContent>
+            <PaginationItem>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => handlePageChange(1)}
+                disabled={currentPage === 1}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+            </PaginationItem>
+            <PaginationItem>
+              <PaginationPrevious
+                onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
+                disabled={currentPage === 1}
+              />
+            </PaginationItem>
 
-                {items.map((item, index) => {
-                  if (item.type === "page") {
-                    return (
-                      <PaginationItem key={index} value={item.value} asChild>
-                        <Button
-                          className="w-10 h-10 p-0"
-                          variant={
-                            item.value === currentPage ? "default" : "outline"
-                          }
-                          onClick={() => handlePageChange(item.value)}
-                        >
-                          {item.value}
-                        </Button>
-                      </PaginationItem>
-                    );
-                  } else {
-                    return (
-                      <PaginationEllipsis
-                        key={`ellipsis-${index}`}
-                        index={index}
-                      />
-                    );
-                  }
-                })}
+            {/* Generate page numbers */}
+            {Array.from({ length: totalPages }, (_, i) => i + 1)
+              .filter(
+                (page) =>
+                  page === 1 ||
+                  page === totalPages ||
+                  (page >= currentPage - 1 && page <= currentPage + 1),
+              )
+              .map((page, index, array) => (
+                <React.Fragment key={page}>
+                  {index > 0 && array[index - 1] !== page - 1 && (
+                    <PaginationItem>
+                      <PaginationEllipsis />
+                    </PaginationItem>
+                  )}
+                  <PaginationItem>
+                    <PaginationLink
+                      href="#"
+                      isActive={page === currentPage}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        handlePageChange(page);
+                      }}
+                    >
+                      {page}
+                    </PaginationLink>
+                  </PaginationItem>
+                </React.Fragment>
+              ))}
 
-                <PaginationNext
-                  onClick={() =>
-                    handlePageChange(Math.min(totalPages, currentPage + 1))
-                  }
-                  disabled={currentPage === totalPages}
-                />
-                <PaginationItem onClick={() => handlePageChange(totalPages)}>
-                  <ChevronRight />
-                </PaginationItem>
-              </>
-            )}
+            <PaginationItem>
+              <PaginationNext
+                onClick={() =>
+                  handlePageChange(Math.min(totalPages, currentPage + 1))
+                }
+                disabled={currentPage === totalPages}
+              />
+            </PaginationItem>
+            <PaginationItem>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => handlePageChange(totalPages)}
+                disabled={currentPage === totalPages}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </PaginationItem>
           </PaginationContent>
         </Pagination>
-      )}
+      )}{" "}
     </div>
   );
 };
