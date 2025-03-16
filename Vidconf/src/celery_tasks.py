@@ -56,7 +56,7 @@ def transcribe_and_summarize_audio(
             transcript = transcriber.transcribe(file_path)
 
             # Step 2: Define a summarization prompt
-            prompt = "Provide a brief summary of the transcript."
+            prompt = "Provide a summary of the transcript, in an email friendly manner"
 
             # Step 3: Apply LeMUR
             result = transcript.lemur.task(
