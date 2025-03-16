@@ -4,6 +4,24 @@ import uuid
 from pydantic import BaseModel, Field
 
 
+class MeetingExtractsCreate(BaseModel):
+    room_id: uuid.UUID
+    file_path: str
+    created_at: datetime
+    update_at: datetime
+
+
+class MeetingExtractsResponse(BaseModel):
+    id: uuid.UUID
+    room_id: uuid.UUID
+    file_path: str
+    created_at: datetime
+    update_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
 class RoomMemberModel(BaseModel):
     room_id: Optional[uuid.UUID]
     user_id: uuid.UUID

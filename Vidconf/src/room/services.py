@@ -1,9 +1,11 @@
+import asyncio
 from datetime import datetime, timedelta
 import uuid
 from sqlalchemy.orm import joinedload, selectinload
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
-from src.db.models import Room, RoomMember, User
+from src.celery_tasks import transcribe_and_summarize_audio
+from src.db.models import MeetingExtracts, Room, RoomMember, User
 from src.errors import (
     PrivateRoomAccessDeniedException,
     RoomCloasedException,
@@ -14,7 +16,12 @@ from src.errors import (
     UserNotFoundException,
 )
 from src.room.utils import convert_email_to_RoomMemberModel
-from .schemas import CreateRoomModel, RoomMemberModel, RoomResponseModel
+from .schemas import (
+    CreateRoomModel,
+    MeetingExtractsResponse,
+    RoomMemberModel,
+    RoomResponseModel,
+)
 
 
 class RoomService:
@@ -220,3 +227,41 @@ class RoomService:
         result = await session.exec(statement)
         room_members_emails = result.all()
         return room_members_emails
+
+    async def add_meeting_extract(
+        self, rid: uuid.UUID, file_path: str, session: AsyncSession
+    ) -> MeetingExtractsResponse:
+        # Create the new extract
+        new_extract = MeetingExtracts(
+            room_id=rid,
+            file_path=file_path,
+            created_at=datetime.now(),
+            update_at=datetime.now(),
+        )
+        session.add(new_extract)
+
+        # First get room members with user relationship loaded
+        statement = (
+            select(RoomMember)
+            .options(joinedload(RoomMember.user))
+            .where(RoomMember.room_id == rid)
+        )
+
+        result = await session.exec(statement)
+        members = result.all()
+
+        # Now we can safely access user emails with the relationship loaded
+        recipients = [
+            member.user.email
+            for member in members
+            if hasattr(member, "user") and member.user is not None and member.user.email
+        ]
+
+        # Commit and refresh
+        await session.commit()
+        await session.refresh(new_extract)
+        transcribe_and_summarize_audio.delay(
+            file_path, str(new_extract.id), recipients, is_admin=True
+        )
+
+        return MeetingExtractsResponse.from_orm(new_extract)

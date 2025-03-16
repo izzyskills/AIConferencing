@@ -1,24 +1,20 @@
-from collections import defaultdict
-from datetime import datetime, timedelta
+from datetime import datetime
 import os
-import shutil
+import aiofiles
 from typing import List
 import uuid
 from fastapi import APIRouter, Depends, File, UploadFile, WebSocket, WebSocketDisconnect
 from fastapi.exceptions import HTTPException
-from sqlalchemy.orm import selectinload
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.auth.dependencies import AccessTokenBearer
-from src.auth.schemas import EmailModel
-from src.celery_tasks import send_email, transcribe_and_summarize_audio
+from src.celery_tasks import send_email
 from src.config import Config
 from src.db.main import get_session
-from src.db.models import MeetingExtracts, Room, RoomMember
+from src.db.models import Room, RoomMember
 from .schemas import RoomMemberModel, CreateRoomModel, RoomResponseModel
 from .services import RoomService
-from src.errors import InvalidToken, UserNotFound, InvalidCredentials
-import stream_chat
+from src.errors import InvalidCredentials
 
 room_router = APIRouter()
 room_service = RoomService()
@@ -46,7 +42,7 @@ async def create_room(
             </p>
             <p>Click <a href="{link}">here</a> to join the room</p>
         </body>"""
-    # send_email.delay(members_email, "Room Created", html_message)
+    send_email.delay(members_email, "Room Created", html_message)
 
     return new_room
 
@@ -82,29 +78,17 @@ async def upload_file(
     unique_filename = f"{rid}_{date_str}_{file.filename}"
     file_path = os.path.join(AUDIO_SAVE_PATH, unique_filename)
 
-    # Save the file
-    with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+    async with aiofiles.open(file_path, "wb") as buffer:
+        content = await file.read()
+        await buffer.write(content)
 
-    # Add entry to MeetingExtracts table
-    new_extract = MeetingExtracts(
-        room_id=rid,
-        file_path=file_path,
-        created_at=datetime.now(),
-        update_at=datetime.now(),
-    )
-    session.add(new_extract)
-    await session.commit()
-    result = await session.exec(select(RoomMember).where(RoomMember.room_id == rid))
-    members = result.all()
-    recipients = [m.user.email for m in members if hasattr(m, "user") and m.user.email]
+    # Add entry to MeetingExtracts table using RoomService
+    new_extract = await room_service.add_meeting_extract(rid, file_path, session)
 
-    # Trigger Celery task
-    transcribe_and_summarize_audio.delay(
-        file_path, str(new_extract.id), recipients, is_admin=True
-    )
-
-    return {"message": "Audio uploaded successfully", "file_path": file_path}
+    return {
+        "message": "Audio uploaded successfully",
+        "file_path": new_extract.file_path,
+    }
 
 
 @room_router.get("/all", response_model=List[RoomResponseModel])
@@ -127,69 +111,69 @@ async def get_future_rooms(
     return rooms
 
 
-@room_router.post("/call/start")
-async def start_call(
-    room_id: uuid.UUID,
-    token: dict = Depends(AccessTokenBearer()),
-    session: AsyncSession = Depends(get_session),
-):
-    # 1. Fetch the room
-    room = await session.get(Room, room_id)
-    if not room:
-        raise HTTPException(status_code=404, detail="Room not found")
-
-    now = datetime.now()
-    # 2. Check timing
-    if now < room.opens_at:
-        raise HTTPException(status_code=400, detail="Call cannot be started yet")
-    if now > room.closes_at:
-        raise HTTPException(status_code=400, detail="Call has already ended")
-
-    # 3. If the room is private, verify the requester is allowed to join.
-    if not room.public:
-        result = await session.execute(
-            select(RoomMember).where(
-                RoomMember.room_id == room_id,
-                RoomMember.user_id == token["user"]["user_uid"],
-            )
-        )
-        member = result.scalar_one_or_none()
-        if not member:
-            raise HTTPException(
-                status_code=403, detail="You are not allowed to join this call"
-            )
-
-    # 4. Create call token using Stream's server SDK.
-    try:
-        stream_client = stream_chat.StreamChat(
-            api_key=Config.STREAM_API_KEY, api_secret=Config.STREAM_SECRET
-        )
-        # Here you create a token for the user (for actual call creation,
-        # you may need to call additional APIs provided by Stream Video)
-        call_token = stream_client.create_token(str(token["user"]["user_uid"]))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Stream API error: {str(e)}")
-
-    # 5. Mark the room as in session
-    room.in_session = True
-    session.add(room)
-    await session.commit()
-
-    # 6. Gather allowed participants’ emails for notifications.
-    result = await session.exec(select(RoomMember).where(RoomMember.room_id == room_id))
-    allowed_members = result.all()
-    # This assumes that the RoomMember has a "user" relationship that loads the user’s email.
-    emails = [
-        member.user.email
-        for member in allowed_members
-        if hasattr(member, "user") and member.user.email
-    ]
-
-    # 7. Trigger a Celery task to send notifications.
-    send_email.delay(
-        emails,
-        "Call Started",
-        f"The call for room '{room.name}' has started. Join now using the app.",
-    )
-
-    return {"status": "success", "call_token": call_token, "room_id": str(room_id)}
+# @room_router.post("/call/start")
+# async def start_call(
+#     room_id: uuid.UUID,
+#     token: dict = Depends(AccessTokenBearer()),
+#     session: AsyncSession = Depends(get_session),
+# ):
+#     # 1. Fetch the room
+#     room = await session.get(Room, room_id)
+#     if not room:
+#         raise HTTPException(status_code=404, detail="Room not found")
+#
+#     now = datetime.now()
+#     # 2. Check timing
+#     if now < room.opens_at:
+#         raise HTTPException(status_code=400, detail="Call cannot be started yet")
+#     if now > room.closes_at:
+#         raise HTTPException(status_code=400, detail="Call has already ended")
+#
+#     # 3. If the room is private, verify the requester is allowed to join.
+#     if not room.public:
+#         result = await session.execute(
+#             select(RoomMember).where(
+#                 RoomMember.room_id == room_id,
+#                 RoomMember.user_id == token["user"]["user_uid"],
+#             )
+#         )
+#         member = result.scalar_one_or_none()
+#         if not member:
+#             raise HTTPException(
+#                 status_code=403, detail="You are not allowed to join this call"
+#             )
+#
+#     # 4. Create call token using Stream's server SDK.
+#     try:
+#         stream_client = stream_chat.StreamChat(
+#             api_key=Config.STREAM_API_KEY, api_secret=Config.STREAM_SECRET
+#         )
+#         # Here you create a token for the user (for actual call creation,
+#         # you may need to call additional APIs provided by Stream Video)
+#         call_token = stream_client.create_token(str(token["user"]["user_uid"]))
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=f"Stream API error: {str(e)}")
+#
+#     # 5. Mark the room as in session
+#     room.in_session = True
+#     session.add(room)
+#     await session.commit()
+#
+#     # 6. Gather allowed participants’ emails for notifications.
+#     result = await session.exec(select(RoomMember).where(RoomMember.room_id == room_id))
+#     allowed_members = result.all()
+#     # This assumes that the RoomMember has a "user" relationship that loads the user’s email.
+#     emails = [
+#         member.user.email
+#         for member in allowed_members
+#         if hasattr(member, "user") and member.user.email
+#     ]
+#
+#     # 7. Trigger a Celery task to send notifications.
+#     send_email.delay(
+#         emails,
+#         "Call Started",
+#         f"The call for room '{room.name}' has started. Join now using the app.",
+#     )
+#
+#     return {"status": "success", "call_token": call_token, "room_id": str(room_id)}
