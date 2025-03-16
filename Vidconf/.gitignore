@@ -11,6 +11,7 @@ media
 #venv
 venv
 
+recordings/
 .DS_Store
 # If you are using PyCharm # 
 # User-specific stuff
