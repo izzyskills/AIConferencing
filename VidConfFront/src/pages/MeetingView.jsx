@@ -1,4 +1,8 @@
-import { usePostJoinRoom, useStreamToken } from "@/adapters/Requests";
+import {
+  usePostAudioRecording,
+  usePostJoinRoom,
+  useStreamToken,
+} from "@/adapters/requests";
 import CallContainer from "@/components/CallContainer";
 import ErrorScreen from "@/components/ErrorScreen";
 import useAuth from "@/hooks/useAuth";
@@ -8,16 +12,21 @@ import { useParams } from "react-router-dom";
 export default function MeetingView() {
   const [homeState, setHomeState] = useState();
   const [error, setError] = useState();
+  const [isAdmin, setIsAdmin] = useState(false);
   const { user } = useAuth();
   const { roomId } = useParams();
   const streamToken = useStreamToken();
   const joinRoom = usePostJoinRoom();
   const getUserTokenFunction = useCallback(async () => {
     try {
-      await joinRoom.mutateAsync({
+      const member = await joinRoom.mutateAsync({
         rid: roomId,
         formData: { room_id: roomId, user_id: user.user_uid },
       });
+      console.log(member);
+      const { is_admin } = member;
+      console.log(is_admin);
+      setIsAdmin(is_admin);
       await getUserToken(
         user.user_uid,
         user.email,
@@ -39,11 +48,11 @@ export default function MeetingView() {
   }
 
   if (homeState) {
-    return <CallContainer {...homeState} />;
+    return <CallContainer {...homeState} isAdmin={isAdmin} />;
   }
 
   return (
-    <section className="w-screen-h-screen flex items-center justify-center">
+    <section className="w-screen h-screen flex items-center justify-center">
       <h1 className="animate-pulse">Loading</h1>
     </section>
   );

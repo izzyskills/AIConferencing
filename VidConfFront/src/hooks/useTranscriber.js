@@ -1,4 +1,4 @@
-import { useAssemblyToken } from "@/adapters/Requests";
+import { useAssemblyToken } from "@/adapters/requests";
 import { RealtimeTranscriber } from "assemblyai";
 import { useEffect, useState } from "react";
 

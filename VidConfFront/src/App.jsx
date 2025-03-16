@@ -17,7 +17,7 @@ const SuspenseWrapper = ({ children }) => (
   <Suspense fallback={<div>Loading...</div>}>
     <div className="overflow-hidden min-h-screen flex-col flex">
       <Navbar />
-      {children}
+      <div className="flex-grow min-h-screen">{children}</div>
       <Footer />
     </div>
   </Suspense>

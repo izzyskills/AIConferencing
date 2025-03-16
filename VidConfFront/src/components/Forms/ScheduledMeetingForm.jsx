@@ -24,7 +24,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { z } from "zod";
 import { meeting_schema } from "./schemas";
-import { useCreateRoom } from "@/adapters/Requests";
+import { useCreateRoom } from "@/adapters/requests";
 import { Separator } from "@/components/ui/separator";
 import AddParticipant from "../cards/AddParticPant";
 import { CalendarPlus } from "lucide-react";

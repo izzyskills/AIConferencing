@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Link, useNavigate } from "react-router-dom";
 import DarkMode from "@/components/DarkMode";
 import useAuth from "@/hooks/useAuth";
-import { useLogout } from "@/adapters/Requests";
+import { useLogout } from "@/adapters/requests";
 
 const Navbar = () => {
   const { isLoggedIn } = useAuth();

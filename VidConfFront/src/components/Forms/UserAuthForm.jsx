@@ -13,7 +13,7 @@ import {
   FormMessage,
   Form,
 } from "../ui/form";
-import { useSignup } from "@/adapters/Requests";
+import { useSignup } from "@/adapters/requests";
 import { Link } from "react-router-dom";
 
 const UserAuthForm = () => {

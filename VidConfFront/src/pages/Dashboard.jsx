@@ -31,7 +31,7 @@ import {
 } from "@/components/ui/pagination";
 import ScheduledMeetingForm from "@/components/Forms/ScheduledMeetingForm";
 import JoinMeetingForm from "@/components/Forms/JoinMeetingForm";
-import { useGetRooms } from "@/adapters/Requests";
+import { useGetRooms } from "@/adapters/requests";
 import { Link } from "react-router-dom";
 import useAuth from "@/hooks/useAuth";
 

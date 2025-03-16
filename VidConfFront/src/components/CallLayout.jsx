@@ -7,14 +7,18 @@ import {
   CallControls,
 } from "@stream-io/video-react-sdk";
 import "@stream-io/video-react-sdk/dist/css/styles.css";
-import { useCallback, useState, useEffect } from "react";
+import { useCallback, useState, useEffect, useRef } from "react";
 import robotImage from "../assets/robot.png";
 import llamaImage from "../assets/llama.png";
-import { useAssemblyToken, useLemur } from "@/adapters/Requests";
-import { useNavigate } from "react-router-dom";
+import {
+  useAssemblyToken,
+  useLemur,
+  usePostAudioRecording,
+} from "@/adapters/requests";
+import { useNavigate, useParams } from "react-router-dom";
 import { useTranscriber } from "@/hooks/useTranscriber";
 
-export default function CallLayout() {
+export default function CallLayout({ isAdmin = false }) {
   // Text to display what is transcribed from AssemblyAI
   const [transcribedText, setTranscribedText] = useState("");
   const assemblyToken = useAssemblyToken();
@@ -24,11 +28,63 @@ export default function CallLayout() {
   const [mic, setMic] = useState(undefined); // Collecting data from the Stream SDK using hooks
   const lemur = useLemur();
   const navigate = useNavigate();
+  const { roomId } = useParams();
+  const postAudio = usePostAudioRecording();
+
+  // recording references
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
+
   const { useCallCallingState, useParticipantCount, useMicrophoneState } =
     useCallStateHooks();
   const participantCount = useParticipantCount();
   const callingState = useCallCallingState();
   const { mediaStream } = useMicrophoneState();
+  useEffect(() => {
+    if (!isAdmin || !mediaStream) return;
+
+    // Setup media recorder for the call audio
+    const audioTracks = mediaStream.getAudioTracks();
+    if (audioTracks.length === 0) {
+      console.error("No audio tracks found in the stream");
+      return;
+    }
+
+    try {
+      const audioStream = new MediaStream(audioTracks);
+      const recorder = new MediaRecorder(audioStream, {
+        mimeType: "audio/webm",
+        audioBitsPerSecond: 128000, // 128 kbps for good quality
+      });
+
+      // Save the recorder reference
+      mediaRecorderRef.current = recorder;
+
+      // Add data handler
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      // Start recording with a reasonable chunk size (30 seconds)
+      recorder.start(30000);
+
+      console.log("Started recording meeting audio");
+    } catch (error) {
+      console.error("Error starting audio recording:", error);
+    }
+
+    // Clean up recording when component unmounts
+    return () => {
+      if (
+        mediaRecorderRef.current &&
+        mediaRecorderRef.current.state !== "inactive"
+      ) {
+        mediaRecorderRef.current.stop();
+      }
+    };
+  }, [isAdmin, mediaStream]);
 
   const processPrompt = useCallback(
     async (prompt) => {
@@ -63,6 +119,39 @@ export default function CallLayout() {
         console.error("Error closing transcriber:", error);
       }
     }
+    if (isAdmin && mediaRecorderRef.current) {
+      try {
+        // Stop the recorder if it's still active
+        if (mediaRecorderRef.current.state !== "inactive") {
+          mediaRecorderRef.current.stop();
+
+          // Wait a moment for the ondataavailable to finish
+          await new Promise((resolve) => setTimeout(resolve, 500));
+        }
+
+        // Create and upload the audio blob
+        if (audioChunksRef.current.length > 0) {
+          const audioBlob = new Blob(audioChunksRef.current, {
+            type: "audio/webm",
+          });
+          console.log(
+            `Uploading audio recording (${(audioBlob.size / (1024 * 1024)).toFixed(2)} MB)`,
+          );
+
+          // Post the audio recording to your API
+          await postAudio.mutateAsync({
+            rid: roomId,
+            blob: audioBlob,
+          });
+
+          console.log("Audio recording uploaded successfully");
+        }
+      } catch (error) {
+        console.error("Error handling audio recording:", error);
+      }
+    }
+
+    // Navigate away from the call
     navigate("/dashboard");
   };
 
@@ -154,6 +243,11 @@ export default function CallLayout() {
       <h2>Participants: {participantCount}</h2>
       <div className="relative overflow-hidden rounded-xl">
         <SpeakerLayout participantsBarPosition="bottom" />
+        {isAdmin && (
+          <div className="absolute top-2 left-2 bg-red-500 text-white px-2 py-1 rounded-md text-sm">
+            Recording Meeting
+          </div>
+        )}
         {llmResponse && (
           <div className="absolute mx-8 top-8 right-8 bg-white text-black p-4 rounded-lg shadow-md">
             {llmResponse}

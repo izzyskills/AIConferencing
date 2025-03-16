@@ -4,7 +4,13 @@ import ErrorScreen from "./ErrorScreen";
 import { useCallback, useEffect, useState } from "react";
 import CallLayout from "./CallLayout";
 
-export default function CallContainer({ apiKey, user, token, roomId }) {
+export default function CallContainer({
+  apiKey,
+  user,
+  token,
+  roomId,
+  isAdmin,
+}) {
   const [call, setCall] = useState();
   const [joining, setJoining] = useState(false);
 
@@ -53,7 +59,7 @@ export default function CallContainer({ apiKey, user, token, roomId }) {
   return (
     <StreamVideo client={videoClient}>
       <StreamCall call={call}>
-        <CallLayout />
+        <CallLayout isAdmin={isAdmin} />
       </StreamCall>
     </StreamVideo>
   );
