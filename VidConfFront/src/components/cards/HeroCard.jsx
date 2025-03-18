@@ -29,10 +29,12 @@ const HeroCard = () => {
                   an AI assistant to enhance your meetings.
                 </p>
                 {/* CTA form */}
-                <Button className="w-full md:min-w-40 sm:w-auto mt-2">
-                  <Link to="/signup"> Sign up </Link>
-                  <ChevronRightCircle className="w-6 h-6 ml-2" />
-                </Button>
+                <Link to="/signup">
+                  <Button className="w-full md:min-w-40 sm:w-auto mt-2">
+                    Sign up
+                    <ChevronRightCircle className="w-6 h-6 ml-2" />
+                  </Button>
+                </Link>
                 {/* Success message */}
                 {/* <p className="text-center md:text-left mt-2 opacity-75 text-sm">Thanks for subscribing!</p> */}
                 <ul

@@ -1,6 +1,4 @@
-import { toast } from "@/components/ui/use-toast";
-
-export function handleErrors(error, error_variable, process) {
+export function handleErrors(error, error_variable, process, toast) {
   if (error.response?.data?.message) {
     toast({
       title: "Uh oh! Something went wrong.",
