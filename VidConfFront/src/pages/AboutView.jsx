@@ -1,6 +1,8 @@
 import React from "react";
 import Footer from "@/components/Footer";
 import israelPic from "../assets/israelpic.png";
+import uturuPic from "../assets/uturu.jpeg";
+import ayoPic from "../assets/ayo.jpeg";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const teamMembers = [
@@ -15,7 +17,7 @@ const teamMembers = [
   },
   {
     id: 2,
-    imgSrc: "/images/team-member-02.jpg",
+    imgSrc: uturuPic,
     alt: "Team Member 02",
     name: "Uturu Favour",
     role: "CTO",
@@ -24,7 +26,7 @@ const teamMembers = [
   },
   {
     id: 3,
-    imgSrc: "/images/team-member-03.jpg",
+    imgSrc: ayoPic,
     alt: "Team Member 03",
     name: "Omojoye Ayo",
     role: "COO",
